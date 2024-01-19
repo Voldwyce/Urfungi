@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "1062316024475",
+    "project_id": "urfungui",
+    "storage_bucket": "urfungui.appspot.com"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:1062316024475:android:6c82ea0f836d4bf7961c3e",
+        "android_client_info": {
+          "package_name": "com.example.urfungi"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDfpfJr0Z_fVjmTqF9Khg62TB81rCarN60"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
