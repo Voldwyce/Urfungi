@@ -76,7 +76,7 @@ class MainActivity : ComponentActivity() {
                     ) {
                         NavHost(
                             navController = navController,
-                            startDestination = Destino.entries.first().ruta
+                            startDestination = Destino.Destino3.ruta
                         ) {
                             composable(
                                 route = Destino.Destino1.ruta,
@@ -102,7 +102,6 @@ class MainActivity : ComponentActivity() {
                                         Destino.Destino1.ruta -> slideIntoContainer(
                                             AnimatedContentTransitionScope.SlideDirection.Left
                                         )
-
                                         else -> slideIntoContainer(AnimatedContentTransitionScope.SlideDirection.Right)
                                     }
                                 },
@@ -111,10 +110,8 @@ class MainActivity : ComponentActivity() {
                                         Destino.Destino1.ruta -> slideOutOfContainer(
                                             AnimatedContentTransitionScope.SlideDirection.Right
                                         )
-
                                         else -> slideOutOfContainer(AnimatedContentTransitionScope.SlideDirection.Left)
                                     }
-
                                 }
                             ) {
                                 Box(
@@ -139,6 +136,60 @@ class MainActivity : ComponentActivity() {
                                     contentAlignment = Alignment.Center
                                 ) {
                                     Text(text = stringResource(id = Destino.Destino3.nombre))
+                                }
+                            }
+
+                            composable(
+                                route = Destino.Destino4.ruta,
+                                enterTransition = {
+                                    when (initialState.destination.route) {
+                                        Destino.Destino3.ruta -> slideIntoContainer(
+                                            AnimatedContentTransitionScope.SlideDirection.Left
+                                        )
+                                        else -> slideIntoContainer(AnimatedContentTransitionScope.SlideDirection.Right)
+                                    }
+                                },
+                                exitTransition = {
+                                    when (targetState.destination.route) {
+                                        Destino.Destino3.ruta -> slideOutOfContainer(
+                                            AnimatedContentTransitionScope.SlideDirection.Right
+                                        )
+                                        else -> slideOutOfContainer(AnimatedContentTransitionScope.SlideDirection.Left)
+                                    }
+                                }
+                            ) {
+                                Box(
+                                    modifier = Modifier.fillMaxSize(),
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    Text(text = stringResource(id = Destino.Destino4.nombre))
+                                }
+                            }
+
+                            composable(
+                                route = Destino.Destino5.ruta,
+                                enterTransition = {
+                                    when (initialState.destination.route) {
+                                        Destino.Destino4.ruta -> slideIntoContainer(
+                                            AnimatedContentTransitionScope.SlideDirection.Left
+                                        )
+                                        else -> slideIntoContainer(AnimatedContentTransitionScope.SlideDirection.Right)
+                                    }
+                                },
+                                exitTransition = {
+                                    when (targetState.destination.route) {
+                                        Destino.Destino4.ruta -> slideOutOfContainer(
+                                            AnimatedContentTransitionScope.SlideDirection.Right
+                                        )
+                                        else -> slideOutOfContainer(AnimatedContentTransitionScope.SlideDirection.Left)
+                                    }
+                                }
+                            ) {
+                                Box(
+                                    modifier = Modifier.fillMaxSize(),
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    Text(text = stringResource(id = Destino.Destino5.nombre))
                                 }
                             }
                         }
