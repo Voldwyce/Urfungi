@@ -39,6 +39,7 @@ import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.ExperimentalMaterial3Api
 
 
+
 class MainActivity : ComponentActivity() {
 
     @OptIn(ExperimentalMaterial3Api::class)
@@ -49,8 +50,8 @@ class MainActivity : ComponentActivity() {
         setContent {
             AppTheme {
                 val navController = rememberNavController()
-
                 Scaffold(
+
                     bottomBar = {
                         NavigationBar {
                             val navBackStackEntry by navController.currentBackStackEntryAsState()
