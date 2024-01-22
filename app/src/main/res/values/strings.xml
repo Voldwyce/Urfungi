@@ -4,7 +4,7 @@
     <string name="destino1">Buscar</string>
     <string name="destino2">Mis Setas</string>
     <string name="destino3">Home</string>
-    <string name="destino4">Comer</string>
-    <string name="destino5">Aprender</string>
+    <string name="destino4">Recetas</string>
+    <string name="destino5">Curio</string>
 
 </resources>
