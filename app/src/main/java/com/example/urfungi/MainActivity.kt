@@ -54,6 +54,9 @@ import androidx.compose.ui.graphics.painter.Painter
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import com.example.urfungi.Curiosidades.Seta
+import com.example.urfungi.Curiosidades.SetasListItem
+import com.example.urfungi.Curiosidades.setas
 import kotlin.math.min
 
 
@@ -285,154 +288,6 @@ class MainActivity : ComponentActivity() {
                         }
                     }
 
-                }
-            }
-        }
-    }
-
-    data class Seta(
-        val nombre: String, /*val imagenResId: Int,*/
-        val descripcion: String,
-        val nombrecientifico: String,
-        val estacion: String
-    )
-
-    val setas = listOf(
-        Seta(
-            "Champiñones", /*R.drawable.seta1*/
-            "Lorem ipsum dolor sit amet, consectetur adipiscing elit. Donec sit amet eros cursus, viverra nibh in, tincidunt justo. Ut pretium a nibh eu feugiat. Quisque lorem ante, accumsan eu tincidunt eget, imperdiet eget felis. Quisque a orci gravida, pellentesque lorem at, consequat quam. Integer non est est. Vestibulum aliquam nulla et massa viverra, non maximus magna consectetur. Nunc non erat id sem condimentum lacinia. Suspendisse id dictum dui, vel hendrerit dolor. Mauris vitae tortor purus. Nulla sit amet ullamcorper risus.",
-            "Agaricus bisporus",
-            "Otoño"
-        ),
-        Seta(
-            "Champiñones", /*R.drawable.seta1*/
-            "Lorem ipsum dolor sit amet, consectetur adipiscing elit. Donec sit amet eros cursus, viverra nibh in, tincidunt justo. Ut pretium a nibh eu feugiat. Quisque lorem ante, accumsan eu tincidunt eget, imperdiet eget felis. Quisque a orci gravida, pellentesque lorem at, consequat quam. Integer non est est. Vestibulum aliquam nulla et massa viverra, non maximus magna consectetur. Nunc non erat id sem condimentum lacinia. Suspendisse id dictum dui, vel hendrerit dolor. Mauris vitae tortor purus. Nulla sit amet ullamcorper risus.",
-            "Agaricus bisporus",
-            "Otoño"
-        ),
-        Seta(
-            "Champiñones", /*R.drawable.seta1*/
-            "Lorem ipsum dolor sit amet, consectetur adipiscing elit. Donec sit amet eros cursus, viverra nibh in, tincidunt justo. Ut pretium a nibh eu feugiat. Quisque lorem ante, accumsan eu tincidunt eget, imperdiet eget felis. Quisque a orci gravida, pellentesque lorem at, consequat quam. Integer non est est. Vestibulum aliquam nulla et massa viverra, non maximus magna consectetur. Nunc non erat id sem condimentum lacinia. Suspendisse id dictum dui, vel hendrerit dolor. Mauris vitae tortor purus. Nulla sit amet ullamcorper risus.",
-            "Agaricus bisporus",
-            "Otoño"
-        ),
-        Seta(
-            "Champiñones", /*R.drawable.seta1*/
-            "Lorem ipsum dolor sit amet, consectetur adipiscing elit. Donec sit amet eros cursus, viverra nibh in, tincidunt justo. Ut pretium a nibh eu feugiat. Quisque lorem ante, accumsan eu tincidunt eget, imperdiet eget felis. Quisque a orci gravida, pellentesque lorem at, consequat quam. Integer non est est. Vestibulum aliquam nulla et massa viverra, non maximus magna consectetur. Nunc non erat id sem condimentum lacinia. Suspendisse id dictum dui, vel hendrerit dolor. Mauris vitae tortor purus. Nulla sit amet ullamcorper risus.",
-            "Agaricus bisporus",
-            "Otoño"
-        ),
-        Seta(
-            "Champiñones", /*R.drawable.seta1*/
-            "Lorem ipsum dolor sit amet, consectetur adipiscing elit. Donec sit amet eros cursus, viverra nibh in, tincidunt justo. Ut pretium a nibh eu feugiat. Quisque lorem ante, accumsan eu tincidunt eget, imperdiet eget felis. Quisque a orci gravida, pellentesque lorem at, consequat quam. Integer non est est. Vestibulum aliquam nulla et massa viverra, non maximus magna consectetur. Nunc non erat id sem condimentum lacinia. Suspendisse id dictum dui, vel hendrerit dolor. Mauris vitae tortor purus. Nulla sit amet ullamcorper risus.",
-            "Agaricus bisporus",
-            "Otoño"
-        ),
-        Seta(
-            "Champiñones", /*R.drawable.seta1*/
-            "Lorem ipsum dolor sit amet, consectetur adipiscing elit. Donec sit amet eros cursus, viverra nibh in, tincidunt justo. Ut pretium a nibh eu feugiat. Quisque lorem ante, accumsan eu tincidunt eget, imperdiet eget felis. Quisque a orci gravida, pellentesque lorem at, consequat quam. Integer non est est. Vestibulum aliquam nulla et massa viverra, non maximus magna consectetur. Nunc non erat id sem condimentum lacinia. Suspendisse id dictum dui, vel hendrerit dolor. Mauris vitae tortor purus. Nulla sit amet ullamcorper risus.",
-            "Agaricus bisporus",
-            "Otoño"
-        ),
-        Seta(
-            "Champiñones", /*R.drawable.seta1*/
-            "Lorem ipsum dolor sit amet, consectetur adipiscing elit. Donec sit amet eros cursus, viverra nibh in, tincidunt justo. Ut pretium a nibh eu feugiat. Quisque lorem ante, accumsan eu tincidunt eget, imperdiet eget felis. Quisque a orci gravida, pellentesque lorem at, consequat quam. Integer non est est. Vestibulum aliquam nulla et massa viverra, non maximus magna consectetur. Nunc non erat id sem condimentum lacinia. Suspendisse id dictum dui, vel hendrerit dolor. Mauris vitae tortor purus. Nulla sit amet ullamcorper risus.",
-            "Agaricus bisporus",
-            "Otoño"
-        ),
-        Seta(
-            "Champiñones", /*R.drawable.seta1*/
-            "Lorem ipsum dolor sit amet, consectetur adipiscing elit. Donec sit amet eros cursus, viverra nibh in, tincidunt justo. Ut pretium a nibh eu feugiat. Quisque lorem ante, accumsan eu tincidunt eget, imperdiet eget felis. Quisque a orci gravida, pellentesque lorem at, consequat quam. Integer non est est. Vestibulum aliquam nulla et massa viverra, non maximus magna consectetur. Nunc non erat id sem condimentum lacinia. Suspendisse id dictum dui, vel hendrerit dolor. Mauris vitae tortor purus. Nulla sit amet ullamcorper risus.",
-            "Agaricus bisporus",
-            "Otoño"
-        ),
-        Seta(
-            "Champiñones", /*R.drawable.seta1*/
-            "Lorem ipsum dolor sit amet, consectetur adipiscing elit. Donec sit amet eros cursus, viverra nibh in, tincidunt justo. Ut pretium a nibh eu feugiat. Quisque lorem ante, accumsan eu tincidunt eget, imperdiet eget felis. Quisque a orci gravida, pellentesque lorem at, consequat quam. Integer non est est. Vestibulum aliquam nulla et massa viverra, non maximus magna consectetur. Nunc non erat id sem condimentum lacinia. Suspendisse id dictum dui, vel hendrerit dolor. Mauris vitae tortor purus. Nulla sit amet ullamcorper risus.",
-            "Agaricus bisporus",
-            "Otoño"
-        ),
-        Seta(
-            "Champiñones", /*R.drawable.seta1*/
-            "Lorem ipsum dolor sit amet, consectetur adipiscing elit. Donec sit amet eros cursus, viverra nibh in, tincidunt justo. Ut pretium a nibh eu feugiat. Quisque lorem ante, accumsan eu tincidunt eget, imperdiet eget felis. Quisque a orci gravida, pellentesque lorem at, consequat quam. Integer non est est. Vestibulum aliquam nulla et massa viverra, non maximus magna consectetur. Nunc non erat id sem condimentum lacinia. Suspendisse id dictum dui, vel hendrerit dolor. Mauris vitae tortor purus. Nulla sit amet ullamcorper risus.",
-            "Agaricus bisporus",
-            "Otoño"
-        ),
-        Seta(
-            "Champiñones", /*R.drawable.seta1*/
-            "Lorem ipsum dolor sit amet, consectetur adipiscing elit. Donec sit amet eros cursus, viverra nibh in, tincidunt justo. Ut pretium a nibh eu feugiat. Quisque lorem ante, accumsan eu tincidunt eget, imperdiet eget felis. Quisque a orci gravida, pellentesque lorem at, consequat quam. Integer non est est. Vestibulum aliquam nulla et massa viverra, non maximus magna consectetur. Nunc non erat id sem condimentum lacinia. Suspendisse id dictum dui, vel hendrerit dolor. Mauris vitae tortor purus. Nulla sit amet ullamcorper risus.",
-            "Agaricus bisporus",
-            "Otoño"
-        ),
-        Seta(
-            "Champiñones", /*R.drawable.seta1*/
-            "Lorem ipsum dolor sit amet, consectetur adipiscing elit. Donec sit amet eros cursus, viverra nibh in, tincidunt justo. Ut pretium a nibh eu feugiat. Quisque lorem ante, accumsan eu tincidunt eget, imperdiet eget felis. Quisque a orci gravida, pellentesque lorem at, consequat quam. Integer non est est. Vestibulum aliquam nulla et massa viverra, non maximus magna consectetur. Nunc non erat id sem condimentum lacinia. Suspendisse id dictum dui, vel hendrerit dolor. Mauris vitae tortor purus. Nulla sit amet ullamcorper risus.",
-            "Agaricus bisporus",
-            "Otoño"
-        ),
-        Seta(
-            "Champiñones", /*R.drawable.seta1*/
-            "Lorem ipsum dolor sit amet, consectetur adipiscing elit. Donec sit amet eros cursus, viverra nibh in, tincidunt justo. Ut pretium a nibh eu feugiat. Quisque lorem ante, accumsan eu tincidunt eget, imperdiet eget felis. Quisque a orci gravida, pellentesque lorem at, consequat quam. Integer non est est. Vestibulum aliquam nulla et massa viverra, non maximus magna consectetur. Nunc non erat id sem condimentum lacinia. Suspendisse id dictum dui, vel hendrerit dolor. Mauris vitae tortor purus. Nulla sit amet ullamcorper risus.",
-            "Agaricus bisporus",
-            "Otoño"
-        ),
-        Seta(
-            "Champiñones", /*R.drawable.seta1*/
-            "Lorem ipsum dolor sit amet, consectetur adipiscing elit. Donec sit amet eros cursus, viverra nibh in, tincidunt justo. Ut pretium a nibh eu feugiat. Quisque lorem ante, accumsan eu tincidunt eget, imperdiet eget felis. Quisque a orci gravida, pellentesque lorem at, consequat quam. Integer non est est. Vestibulum aliquam nulla et massa viverra, non maximus magna consectetur. Nunc non erat id sem condimentum lacinia. Suspendisse id dictum dui, vel hendrerit dolor. Mauris vitae tortor purus. Nulla sit amet ullamcorper risus.",
-            "Agaricus bisporus",
-            "Otoño"
-        ),
-
-        )
-
-    @Composable
-    fun SetasListItem(seta: Seta, onItemClick: () -> Unit) {
-        var isExpanded by remember { mutableStateOf(false) }
-
-        Card(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(15.dp, 15.dp, 30.dp)
-                .clickable { onItemClick(); isExpanded = !isExpanded }
-        ) {
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(16.dp),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                /*Image(
-                    painter = painterResource(id = seta.imagenResId),
-                    contentDescription = null,
-                    modifier = Modifier
-                        .size(64.dp)
-                        .padding(end = 16.dp)
-                )*/
-                Column {
-                    Text(text = seta.nombre, fontWeight = FontWeight.Bold)
-                    // Lógica para mostrar solo una parte del texto si no está expandido
-                    if (!isExpanded) {
-                        Text(text = seta.descripcion.substring(0, min(14, seta.descripcion.length)))
-                    } else {
-                        // Si está expandido, muestra todo el texto
-                        Spacer(modifier = Modifier.height(12.dp))
-                        Text(
-                            text = "Descripción",
-                            fontWeight = FontWeight.Bold,
-                            color = Color.Black
-                        )
-                        Text(text = seta.descripcion, textAlign = TextAlign.Justify)
-                        Spacer(modifier = Modifier.height(12.dp))
-                        Text(
-                            text = "Nombre cientifico",
-                            fontWeight = FontWeight.Bold,
-                            color = Color.Black
-                        )
-                        Text(text = seta.nombrecientifico)
-                        Spacer(modifier = Modifier.height(12.dp))
-                        Text(text = "Estación", fontWeight = FontWeight.Bold, color = Color.Black)
-                        Text(text = seta.estacion)
-                    }
                 }
             }
         }
