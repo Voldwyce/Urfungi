@@ -36,4 +36,6 @@ enum class Destino(
         icono = Icons.Outlined.AccountCircle,
         iconoSeleccionado = Icons.Filled.AccountCircle
     )
+
+
 }
