@@ -41,10 +41,10 @@ enum class Destino(
     ),
 
     Destino3(
-    ruta = "destino3",
-    nombre = R.string.destino3,
-    icono = Icons.Outlined.Home,
-    iconoSeleccionado = Icons.Filled.Home
+        ruta = "destino3",
+        nombre = R.string.destino3,
+        icono = Icons.Outlined.Home,
+        iconoSeleccionado = Icons.Filled.Home
     ),
 
     Destino4(
