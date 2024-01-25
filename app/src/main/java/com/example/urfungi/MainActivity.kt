@@ -4,9 +4,14 @@ import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.compose.animation.AnimatedContentTransitionScope
+import androidx.compose.foundation.Image
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -35,8 +40,14 @@ import androidx.navigation.compose.rememberNavController
 import com.example.urfungi.ui.theme.AppTheme
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.runtime.Composable
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.font.FontWeight
 import com.example.urfungi.Curiosidades.SetasListItem
+import com.example.urfungi.Curiosidades.SetasListScreen
 import com.example.urfungi.Curiosidades.setas
+import com.example.urfungi.Recetas.RecipeListItem
+import com.example.urfungi.Recetas.recipes
 
 class MainActivity : ComponentActivity() {
     @OptIn(ExperimentalMaterial3Api::class)
@@ -221,7 +232,11 @@ class MainActivity : ComponentActivity() {
                                     modifier = Modifier.fillMaxSize(),
                                     contentAlignment = Alignment.Center
                                 ) {
-                                    Text(text = stringResource(id = Destino.Destino4.nombre))
+                                    LazyColumn {
+                                        items(recipes) { recipe ->
+                                            RecipeListItem(recipe = recipe)
+                                        }
+                                    }
                                 }
                             }
 
@@ -252,15 +267,7 @@ class MainActivity : ComponentActivity() {
                                         .padding(start = 16.dp, top = 40.dp, bottom = 40.dp),
                                     contentAlignment = Alignment.Center
                                 ) {
-                                    LazyColumn {
-                                        items(setas) { seta ->
-                                            SetasListItem(seta = seta) {
-                                                println("Descripción completa: ${seta.descripcion}")
-                                                println("Nombre cientifico:  ${seta.nombrecientifico}")
-                                                println("Estación: ${seta.estacion}")
-                                            }
-                                        }
-                                    }
+                                    SetasListScreen()
                                 }
                             }
                         }
