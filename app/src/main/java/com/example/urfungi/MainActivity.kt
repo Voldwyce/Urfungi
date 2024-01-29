@@ -48,11 +48,13 @@ import com.example.urfungi.Curiosidades.SetasListScreen
 import com.example.urfungi.Curiosidades.setas
 import com.example.urfungi.Recetas.RecipeListItem
 import com.example.urfungi.Recetas.recipes
+import org.w3c.dom.Text
 
 class MainActivity : ComponentActivity() {
     @OptIn(ExperimentalMaterial3Api::class)
     override fun onCreate(savedInstanceState: Bundle?) {
         installSplashScreen()
+
         super.onCreate(savedInstanceState)
 
         setContent {
