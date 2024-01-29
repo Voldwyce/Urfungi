@@ -1,8 +1,23 @@
 package com.example.urfungi
 
+import android.content.pm.PackageManager
 import android.os.Bundle
+import android.Manifest
+import android.content.ContentValues.TAG
+import android.content.Intent
+import android.net.Uri
+import android.os.Build
+import android.os.Environment
+import android.provider.Settings
+import android.util.Log
+import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.camera.core.CameraSelector
+import androidx.camera.core.Preview
+import androidx.camera.lifecycle.ProcessCameraProvider
+import androidx.camera.view.PreviewView
 import androidx.compose.animation.AnimatedContentTransitionScope
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
@@ -41,19 +56,29 @@ import com.example.urfungi.ui.theme.AppTheme
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.viewinterop.AndroidView
+import androidx.core.content.ContextCompat
+import androidx.lifecycle.LifecycleOwner
 import com.example.urfungi.Curiosidades.SetasListItem
 import com.example.urfungi.Curiosidades.SetasListScreen
 import com.example.urfungi.Curiosidades.setas
 import com.example.urfungi.Recetas.RecipeListItem
 import com.example.urfungi.Recetas.recipes
+import java.util.concurrent.ExecutorService
+import java.util.concurrent.Executors
 
 class MainActivity : ComponentActivity() {
+
+    private lateinit var cameraExecutor : ExecutorService
     @OptIn(ExperimentalMaterial3Api::class)
     override fun onCreate(savedInstanceState: Bundle?) {
         installSplashScreen()
         super.onCreate(savedInstanceState)
+        cameraExecutor = Executors.newSingleThreadExecutor()
 
         setContent {
             AppTheme {
@@ -110,13 +135,8 @@ class MainActivity : ComponentActivity() {
                                 exitTransition = {
                                     slideOutOfContainer(AnimatedContentTransitionScope.SlideDirection.Left)
                                 }
-                            ) {
-                                Box(
-                                    modifier = Modifier.fillMaxSize(),
-                                    contentAlignment = Alignment.Center
-                                ) {
-                                    Text(text = stringResource(id = Destino.Destino1.nombre))
-                                }
+                            ){
+                                SearchScreen()
                             }
 
                             composable(
@@ -276,5 +296,27 @@ class MainActivity : ComponentActivity() {
                 }
             }
         }
+        requestPermissions()
     }
+
+    private fun requestPermissions() {
+    requestCameraPermissionIfMissing() { granted ->
+        if (granted) {
+            Toast.makeText(this, "Todos los permisos aceptados!", Toast.LENGTH_SHORT).show()
+        } else {
+    Toast.makeText(this, "No se han aceptado todos los permisos!", Toast.LENGTH_SHORT).show()
+        }
+    }
+    }
+
+    private fun requestCameraPermissionIfMissing(onResult: ((Boolean) -> Unit)) {
+        if (ContextCompat.checkSelfPermission(this, Manifest.permission.CAMERA) == PackageManager.PERMISSION_GRANTED)
+            onResult(true)
+         else
+            registerForActivityResult(ActivityResultContracts.RequestPermission()) {
+                onResult(it)
+            }.launch(Manifest.permission.CAMERA)
+
+    }
+
 }
