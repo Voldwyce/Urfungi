@@ -25,6 +25,7 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import com.example.urfungi.ui.theme.AppTheme
+import com.google.firebase.auth.FirebaseAuth
 import org.w3c.dom.Text
 
 class MainActivity : ComponentActivity() {
@@ -32,114 +33,122 @@ class MainActivity : ComponentActivity() {
         installSplashScreen()
 
         super.onCreate(savedInstanceState)
-        setContent {
-            AppTheme {
-                val navController = rememberNavController()
 
-                Scaffold(
-                    bottomBar = {
-                        NavigationBar {
-                            val navBackStackEntry by navController.currentBackStackEntryAsState()
-                            val destinoActual = navBackStackEntry?.destination
+        // Verificar si el usuario está logeado
+        val currentUser = FirebaseAuth.getInstance().currentUser
+        if (currentUser == null) {
+            // El usuario no está logeado, navegar a la pantalla de login
 
-                            Destino.entries.forEach { destino ->
-                                val destinoSeleccionado =
-                                    destinoActual?.hierarchy?.any { it.route == destino.ruta } == true
+        } else {
+            setContent {
+                AppTheme {
+                    val navController = rememberNavController()
 
-                                NavigationBarItem(
-                                    selected = destinoSeleccionado,
-                                    onClick = {
-                                        if (!destinoSeleccionado) {
-                                            navController.navigate(destino.ruta) {
-                                                popUpTo(navController.graph.findStartDestination().id)
-                                                launchSingleTop = true
+                    Scaffold(
+                        bottomBar = {
+                            NavigationBar {
+                                val navBackStackEntry by navController.currentBackStackEntryAsState()
+                                val destinoActual = navBackStackEntry?.destination
+
+                                Destino.entries.forEach { destino ->
+                                    val destinoSeleccionado =
+                                        destinoActual?.hierarchy?.any { it.route == destino.ruta } == true
+
+                                    NavigationBarItem(
+                                        selected = destinoSeleccionado,
+                                        onClick = {
+                                            if (!destinoSeleccionado) {
+                                                navController.navigate(destino.ruta) {
+                                                    popUpTo(navController.graph.findStartDestination().id)
+                                                    launchSingleTop = true
+                                                }
                                             }
+                                        },
+                                        icon = {
+                                            Icon(
+                                                imageVector = if (destinoSeleccionado) destino.iconoSeleccionado else destino.icono,
+                                                contentDescription = stringResource(id = destino.nombre)
+                                            )
+                                        },
+                                        label = {
+                                            Text(text = stringResource(id = destino.nombre))
                                         }
-                                    },
-                                    icon = {
-                                        Icon(
-                                            imageVector = if (destinoSeleccionado) destino.iconoSeleccionado else destino.icono,
-                                            contentDescription = stringResource(id = destino.nombre)
-                                        )
-                                    },
-                                    label = {
-                                        Text(text = stringResource(id = destino.nombre))
-                                    }
-                                )
+                                    )
+                                }
                             }
                         }
-                    }
-                ) { paddingValues ->
-                    Surface(
-                        modifier = Modifier
-                            .fillMaxSize()
-                            .padding(paddingValues)
-                    ) {
-                        NavHost(
-                            navController = navController,
-                            startDestination = Destino.entries.first().ruta
+                    ) { paddingValues ->
+                        Surface(
+                            modifier = Modifier
+                                .fillMaxSize()
+                                .padding(paddingValues)
                         ) {
-                            composable(
-                                route = Destino.Destino1.ruta,
-                                enterTransition = {
-                                    slideIntoContainer(AnimatedContentTransitionScope.SlideDirection.Right)
-                                },
-                                exitTransition = {
-                                    slideOutOfContainer(AnimatedContentTransitionScope.SlideDirection.Left)
-                                }
+                            NavHost(
+                                navController = navController,
+                                startDestination = Destino.entries.first().ruta
                             ) {
-                                Box(
-                                    modifier = Modifier.fillMaxSize(),
-                                    contentAlignment = Alignment.Center
-                                ) {
-                                    Text(text = stringResource(id = Destino.Destino1.nombre))
-                                }
-                            }
-
-                            composable(
-                                route = Destino.Destino2.ruta,
-                                enterTransition = {
-                                    when (initialState.destination.route) {
-                                        Destino.Destino1.ruta -> slideIntoContainer(
-                                            AnimatedContentTransitionScope.SlideDirection.Left
-                                        )
-
-                                        else -> slideIntoContainer(AnimatedContentTransitionScope.SlideDirection.Right)
+                                composable(
+                                    route = Destino.Destino1.ruta,
+                                    enterTransition = {
+                                        slideIntoContainer(AnimatedContentTransitionScope.SlideDirection.Right)
+                                    },
+                                    exitTransition = {
+                                        slideOutOfContainer(AnimatedContentTransitionScope.SlideDirection.Left)
                                     }
-                                },
-                                exitTransition = {
-                                    when (targetState.destination.route) {
-                                        Destino.Destino1.ruta -> slideOutOfContainer(
-                                            AnimatedContentTransitionScope.SlideDirection.Right
-                                        )
-
-                                        else -> slideOutOfContainer(AnimatedContentTransitionScope.SlideDirection.Left)
+                                ) {
+                                    Box(
+                                        modifier = Modifier.fillMaxSize(),
+                                        contentAlignment = Alignment.Center
+                                    ) {
+                                        Text(text = stringResource(id = Destino.Destino1.nombre))
                                     }
+                                }
 
-                                }
-                            ) {
-                                Box(
-                                    modifier = Modifier.fillMaxSize(),
-                                    contentAlignment = Alignment.Center
-                                ) {
-                                    Text(text = stringResource(id = Destino.Destino2.nombre))
-                                }
-                            }
+                                composable(
+                                    route = Destino.Destino2.ruta,
+                                    enterTransition = {
+                                        when (initialState.destination.route) {
+                                            Destino.Destino1.ruta -> slideIntoContainer(
+                                                AnimatedContentTransitionScope.SlideDirection.Left
+                                            )
 
-                            composable(
-                                route = Destino.Destino3.ruta,
-                                enterTransition = {
-                                    slideIntoContainer(AnimatedContentTransitionScope.SlideDirection.Left)
-                                },
-                                exitTransition = {
-                                    slideOutOfContainer(AnimatedContentTransitionScope.SlideDirection.Right)
-                                }
-                            ) {
-                                Box(
-                                    modifier = Modifier.fillMaxSize(),
-                                    contentAlignment = Alignment.Center
+                                            else -> slideIntoContainer(AnimatedContentTransitionScope.SlideDirection.Right)
+                                        }
+                                    },
+                                    exitTransition = {
+                                        when (targetState.destination.route) {
+                                            Destino.Destino1.ruta -> slideOutOfContainer(
+                                                AnimatedContentTransitionScope.SlideDirection.Right
+                                            )
+
+                                            else -> slideOutOfContainer(AnimatedContentTransitionScope.SlideDirection.Left)
+                                        }
+
+                                    }
                                 ) {
-                                    Text(text = stringResource(id = Destino.Destino3.nombre))
+                                    Box(
+                                        modifier = Modifier.fillMaxSize(),
+                                        contentAlignment = Alignment.Center
+                                    ) {
+                                        Text(text = stringResource(id = Destino.Destino2.nombre))
+                                    }
+                                }
+
+                                composable(
+                                    route = Destino.Destino3.ruta,
+                                    enterTransition = {
+                                        slideIntoContainer(AnimatedContentTransitionScope.SlideDirection.Left)
+                                    },
+                                    exitTransition = {
+                                        slideOutOfContainer(AnimatedContentTransitionScope.SlideDirection.Right)
+                                    }
+                                ) {
+                                    Box(
+                                        modifier = Modifier.fillMaxSize(),
+                                        contentAlignment = Alignment.Center
+                                    ) {
+                                        Text(text = stringResource(id = Destino.Destino3.nombre))
+                                    }
                                 }
                             }
                         }

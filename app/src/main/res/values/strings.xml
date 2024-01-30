@@ -4,4 +4,5 @@
     <string name="destino1">Destino 1</string>
     <string name="destino2">Destino 2</string>
     <string name="destino3">Destino 3</string>
+    <string name="title_activity_login">LoginActivity</string>
 </resources>

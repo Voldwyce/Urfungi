@@ -1,5 +1,6 @@
 package com.example.urfungi
 
+import android.content.Intent
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
@@ -22,6 +23,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
+import androidx.navigation.NavGraph.Companion.findStartDestination
 import androidx.navigation.compose.rememberNavController
 import com.example.urfungi.ui.theme.AppTheme
 import com.google.firebase.auth.FirebaseAuth
@@ -37,11 +39,20 @@ class LoginAppActivity : ComponentActivity() {
 
                 LoginScreen(
                     navController = navController,
-                    onLoginSuccess = {},
+                    onLoginSuccess = {
+                        // Navegar al MainActivity con el destino inicial (Destino1)
+                        navigateToMainActivity()
+
+                    },
                     onRegisterClick = {}
                 )
             }
         }
+    }
+    private fun navigateToMainActivity() {
+        val intent = Intent(this, MainActivity::class.java)
+        startActivity(intent)
+        finish()
     }
 }
 
@@ -156,9 +167,8 @@ fun LoginScreen(
             ) {
                 Text("Registrar")
             }
-
-
         }
+
     }
 
 }
