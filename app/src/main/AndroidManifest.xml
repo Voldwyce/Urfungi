@@ -17,14 +17,24 @@
         <meta-data
             android:name="com.google.firebase.auth.FirebaseAuthProvider"
             android:value="urfungui" />
+
         <activity
             android:name=".LoginAppActivity"
             android:exported="true"
             android:theme="@style/Theme.App.Starting">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
+
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
+
+        <activity
+            android:name=".MainActivity"
+            android:exported="true"
+            android:theme="@style/Theme.App.Starting">
+        </activity>
+
     </application>
+
 </manifest>
