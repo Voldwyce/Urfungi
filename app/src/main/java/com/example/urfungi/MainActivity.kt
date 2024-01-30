@@ -75,7 +75,8 @@ import java.util.concurrent.Executors
 
 class MainActivity : ComponentActivity() {
 
-    private lateinit var cameraExecutor : ExecutorService
+    private lateinit var cameraExecutor: ExecutorService
+
     @OptIn(ExperimentalMaterial3Api::class)
     override fun onCreate(savedInstanceState: Bundle?) {
         installSplashScreen()
@@ -103,50 +104,50 @@ class MainActivity : ComponentActivity() {
                                     val destinoSeleccionado =
                                         destinoActual?.hierarchy?.any { it.route == destino.ruta } == true
 
-                                NavigationBarItem(
-                                    selected = destinoSeleccionado,
-                                    onClick = {
-                                        if (!destinoSeleccionado) {
-                                            navController.navigate(destino.ruta) {
-                                                popUpTo(navController.graph.findStartDestination().id)
-                                                launchSingleTop = true
+                                    NavigationBarItem(
+                                        selected = destinoSeleccionado,
+                                        onClick = {
+                                            if (!destinoSeleccionado) {
+                                                navController.navigate(destino.ruta) {
+                                                    popUpTo(navController.graph.findStartDestination().id)
+                                                    launchSingleTop = true
+                                                }
                                             }
+                                        },
+                                        icon = {
+                                            Icon(
+                                                imageVector = if (destinoSeleccionado) destino.iconoSeleccionado else destino.icono,
+                                                contentDescription = stringResource(id = destino.nombre)
+                                            )
+                                        },
+                                        label = {
+                                            Text(text = stringResource(id = destino.nombre))
                                         }
-                                    },
-                                    icon = {
-                                        Icon(
-                                            imageVector = if (destinoSeleccionado) destino.iconoSeleccionado else destino.icono,
-                                            contentDescription = stringResource(id = destino.nombre)
-                                        )
-                                    },
-                                    label = {
-                                        Text(text = stringResource(id = destino.nombre))
-                                    }
-                                )
+                                    )
+                                }
                             }
                         }
-                    }
-                ) { paddingValues ->
-                    Surface(
-                        modifier = Modifier
-                            .fillMaxSize()
-                            .padding(paddingValues)
-                    ) {
-                        NavHost(
-                            navController = navController,
-                            startDestination = Destino.Destino3.ruta
+                    ) { paddingValues ->
+                        Surface(
+                            modifier = Modifier
+                                .fillMaxSize()
+                                .padding(paddingValues)
                         ) {
-                            composable(
-                                route = Destino.Destino1.ruta,
-                                enterTransition = {
-                                    slideIntoContainer(AnimatedContentTransitionScope.SlideDirection.Right)
-                                },
-                                exitTransition = {
-                                    slideOutOfContainer(AnimatedContentTransitionScope.SlideDirection.Left)
+                            NavHost(
+                                navController = navController,
+                                startDestination = Destino.Destino3.ruta
+                            ) {
+                                composable(
+                                    route = Destino.Destino1.ruta,
+                                    enterTransition = {
+                                        slideIntoContainer(AnimatedContentTransitionScope.SlideDirection.Right)
+                                    },
+                                    exitTransition = {
+                                        slideOutOfContainer(AnimatedContentTransitionScope.SlideDirection.Left)
+                                    }
+                                ) {
+                                    SearchScreen()
                                 }
-                            ){
-                                SearchScreen()
-                            }
 
                                 composable(
                                     route = Destino.Destino2.ruta,
@@ -156,7 +157,9 @@ class MainActivity : ComponentActivity() {
                                                 AnimatedContentTransitionScope.SlideDirection.Left
                                             )
 
-                                            else -> slideIntoContainer(AnimatedContentTransitionScope.SlideDirection.Right)
+                                            else -> slideIntoContainer(
+                                                AnimatedContentTransitionScope.SlideDirection.Right
+                                            )
                                         }
                                     },
                                     exitTransition = {
@@ -165,7 +168,9 @@ class MainActivity : ComponentActivity() {
                                                 AnimatedContentTransitionScope.SlideDirection.Right
                                             )
 
-                                            else -> slideOutOfContainer(AnimatedContentTransitionScope.SlideDirection.Left)
+                                            else -> slideOutOfContainer(
+                                                AnimatedContentTransitionScope.SlideDirection.Left
+                                            )
                                         }
 
                                     }
@@ -178,151 +183,169 @@ class MainActivity : ComponentActivity() {
                                     }
                                 }
 
-                            composable(
-                                route = Destino.Destino3.ruta,
-                                enterTransition = {
-                                    slideIntoContainer(AnimatedContentTransitionScope.SlideDirection.Left)
-                                },
-                                exitTransition = {
-                                    slideOutOfContainer(AnimatedContentTransitionScope.SlideDirection.Right)
-                                }
-                            ) {
-                                Scaffold(
-                                    topBar = {
+                                composable(
+                                    route = Destino.Destino3.ruta,
+                                    enterTransition = {
+                                        slideIntoContainer(AnimatedContentTransitionScope.SlideDirection.Left)
+                                    },
+                                    exitTransition = {
+                                        slideOutOfContainer(AnimatedContentTransitionScope.SlideDirection.Right)
+                                    }
+                                ) {
+                                    Scaffold(
+                                        topBar = {
+                                            Surface(
+                                                color = MaterialTheme.colorScheme.primary,
+                                                shape = RoundedCornerShape(0.dp)
+                                            ) {
+                                                TopAppBar(
+                                                    title = {
+                                                        Box(
+                                                            modifier = Modifier.fillMaxSize(),
+                                                            contentAlignment = Alignment.Center
+                                                        ) {
+                                                            Text(text = "UrFungi")
+                                                        }
+                                                    },
+                                                    navigationIcon = {
+                                                        IconButton(onClick = { /* Handle navigation icon press */ }) {
+                                                            Icon(
+                                                                Icons.Filled.PlayArrow,
+                                                                contentDescription = "Navigation Icon"
+                                                            )
+                                                        }
+                                                    },
+                                                    actions = {
+                                                        IconButton(onClick = { /* Handle send message icon press */ }) {
+                                                            Icon(
+                                                                Icons.Filled.MailOutline,
+                                                                contentDescription = "Send Message Icon"
+                                                            )
+                                                        }
+                                                    }
+                                                )
+                                            }
+                                        }
+                                    ) { paddingValues ->
                                         Surface(
-                                            color = MaterialTheme.colorScheme.primary,
-                                            shape = RoundedCornerShape(0.dp)
+                                            modifier = Modifier.fillMaxSize()
                                         ) {
-                                            TopAppBar(
-                                                title = {
-                                                    Box(
-                                                        modifier = Modifier.fillMaxSize(),
-                                                        contentAlignment = Alignment.Center
-                                                    ) {
-                                                        Text(text = "UrFungi")
-                                                    }
-                                                },
-                                                navigationIcon = {
-                                                    IconButton(onClick = { /* Handle navigation icon press */ }) {
-                                                        Icon(
-                                                            Icons.Filled.PlayArrow,
-                                                            contentDescription = "Navigation Icon"
-                                                        )
-                                                    }
-                                                },
-                                                actions = {
-                                                    IconButton(onClick = { /* Handle send message icon press */ }) {
-                                                        Icon(
-                                                            Icons.Filled.MailOutline,
-                                                            contentDescription = "Send Message Icon"
-                                                        )
-                                                    }
-                                                }
+                                            Box(
+                                                modifier = Modifier
+                                                    .fillMaxSize()
+                                                    .padding(paddingValues),
+                                                contentAlignment = Alignment.Center
+                                            ) {
+                                                Text(text = stringResource(id = Destino.Destino3.nombre))
+                                            }
+                                        }
+                                    }
+                                }
+
+                                composable(
+                                    route = Destino.Destino4.ruta,
+                                    enterTransition = {
+                                        when (initialState.destination.route) {
+                                            Destino.Destino3.ruta -> slideIntoContainer(
+                                                AnimatedContentTransitionScope.SlideDirection.Left
+                                            )
+
+                                            else -> slideIntoContainer(
+                                                AnimatedContentTransitionScope.SlideDirection.Right
+                                            )
+                                        }
+                                    },
+                                    exitTransition = {
+                                        when (targetState.destination.route) {
+                                            Destino.Destino3.ruta -> slideOutOfContainer(
+                                                AnimatedContentTransitionScope.SlideDirection.Right
+                                            )
+
+                                            else -> slideOutOfContainer(
+                                                AnimatedContentTransitionScope.SlideDirection.Left
                                             )
                                         }
                                     }
-                                ) { paddingValues ->
-                                    Surface(
-                                        modifier = Modifier.fillMaxSize()
+                                ) {
+                                    Box(
+                                        modifier = Modifier.fillMaxSize(),
+                                        contentAlignment = Alignment.Center
                                     ) {
-                                        Box(
-                                            modifier = Modifier
-                                                .fillMaxSize()
-                                                .padding(paddingValues),
-                                            contentAlignment = Alignment.Center
-                                        ) {
-                                            Text(text = stringResource(id = Destino.Destino3.nombre))
+                                        LazyColumn {
+                                            items(recipes) { recipe ->
+                                                RecipeListItem(recipe = recipe)
+                                            }
                                         }
                                     }
                                 }
-                            }
 
-                            composable(
-                                route = Destino.Destino4.ruta,
-                                enterTransition = {
-                                    when (initialState.destination.route) {
-                                        Destino.Destino3.ruta -> slideIntoContainer(
-                                            AnimatedContentTransitionScope.SlideDirection.Left
-                                        )
+                                composable(
+                                    route = Destino.Destino5.ruta,
+                                    enterTransition = {
+                                        when (initialState.destination.route) {
+                                            Destino.Destino4.ruta -> slideIntoContainer(
+                                                AnimatedContentTransitionScope.SlideDirection.Left
+                                            )
 
-                                        else -> slideIntoContainer(AnimatedContentTransitionScope.SlideDirection.Right)
-                                    }
-                                },
-                                exitTransition = {
-                                    when (targetState.destination.route) {
-                                        Destino.Destino3.ruta -> slideOutOfContainer(
-                                            AnimatedContentTransitionScope.SlideDirection.Right
-                                        )
+                                            else -> slideIntoContainer(
+                                                AnimatedContentTransitionScope.SlideDirection.Right
+                                            )
+                                        }
+                                    },
+                                    exitTransition = {
+                                        when (targetState.destination.route) {
+                                            Destino.Destino4.ruta -> slideOutOfContainer(
+                                                AnimatedContentTransitionScope.SlideDirection.Right
+                                            )
 
-                                        else -> slideOutOfContainer(AnimatedContentTransitionScope.SlideDirection.Left)
-                                    }
-                                }
-                            ) {
-                                Box(
-                                    modifier = Modifier.fillMaxSize(),
-                                    contentAlignment = Alignment.Center
-                                ) {
-                                    LazyColumn {
-                                        items(recipes) { recipe ->
-                                            RecipeListItem(recipe = recipe)
+                                            else -> slideOutOfContainer(
+                                                AnimatedContentTransitionScope.SlideDirection.Left
+                                            )
                                         }
                                     }
-                                }
-                            }
-
-                            composable(
-                                route = Destino.Destino5.ruta,
-                                enterTransition = {
-                                    when (initialState.destination.route) {
-                                        Destino.Destino4.ruta -> slideIntoContainer(
-                                            AnimatedContentTransitionScope.SlideDirection.Left
-                                        )
-
-                                        else -> slideIntoContainer(AnimatedContentTransitionScope.SlideDirection.Right)
-                                    }
-                                },
-                                exitTransition = {
-                                    when (targetState.destination.route) {
-                                        Destino.Destino4.ruta -> slideOutOfContainer(
-                                            AnimatedContentTransitionScope.SlideDirection.Right
-                                        )
-
-                                        else -> slideOutOfContainer(AnimatedContentTransitionScope.SlideDirection.Left)
-                                    }
-                                }
-                            ) {
-                                Box(
-                                    modifier = Modifier
-                                        .fillMaxSize()
-                                        .padding(start = 16.dp, top = 40.dp, bottom = 40.dp),
-                                    contentAlignment = Alignment.Center
                                 ) {
-                                    SetasListScreen()
+                                    Box(
+                                        modifier = Modifier
+                                            .fillMaxSize()
+                                            .padding(start = 16.dp, top = 40.dp, bottom = 40.dp),
+                                        contentAlignment = Alignment.Center
+                                    ) {
+                                        SetasListScreen()
+                                    }
                                 }
                             }
                         }
-                    }
 
+                    }
                 }
             }
+            requestPermissions()
         }
-        requestPermissions()
+
     }
 
     private fun requestPermissions() {
-    requestCameraPermissionIfMissing() { granted ->
-        if (granted) {
-            Toast.makeText(this, "Todos los permisos aceptados!", Toast.LENGTH_SHORT).show()
-        } else {
-    Toast.makeText(this, "No se han aceptado todos los permisos!", Toast.LENGTH_SHORT).show()
+        requestCameraPermissionIfMissing() { granted ->
+            if (granted) {
+                Toast.makeText(this, "Todos los permisos aceptados!", Toast.LENGTH_SHORT).show()
+            } else {
+                Toast.makeText(
+                    this,
+                    "No se han aceptado todos los permisos!",
+                    Toast.LENGTH_SHORT
+                ).show()
+            }
         }
-    }
     }
 
     private fun requestCameraPermissionIfMissing(onResult: ((Boolean) -> Unit)) {
-        if (ContextCompat.checkSelfPermission(this, Manifest.permission.CAMERA) == PackageManager.PERMISSION_GRANTED)
+        if (ContextCompat.checkSelfPermission(
+                this,
+                Manifest.permission.CAMERA
+            ) == PackageManager.PERMISSION_GRANTED
+        )
             onResult(true)
-         else
+        else
             registerForActivityResult(ActivityResultContracts.RequestPermission()) {
                 onResult(it)
             }.launch(Manifest.permission.CAMERA)
