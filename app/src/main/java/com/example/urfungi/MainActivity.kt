@@ -1,8 +1,23 @@
 package com.example.urfungi
 
+import android.content.pm.PackageManager
 import android.os.Bundle
+import android.Manifest
+import android.content.ContentValues.TAG
+import android.content.Intent
+import android.net.Uri
+import android.os.Build
+import android.os.Environment
+import android.provider.Settings
+import android.util.Log
+import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.camera.core.CameraSelector
+import androidx.camera.core.Preview
+import androidx.camera.lifecycle.ProcessCameraProvider
+import androidx.camera.view.PreviewView
 import androidx.compose.animation.AnimatedContentTransitionScope
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
@@ -41,8 +56,13 @@ import com.example.urfungi.ui.theme.AppTheme
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.viewinterop.AndroidView
+import androidx.core.content.ContextCompat
+import androidx.lifecycle.LifecycleOwner
 import com.example.urfungi.Curiosidades.SetasListItem
 import com.example.urfungi.Curiosidades.SetasListScreen
 import com.example.urfungi.Curiosidades.setas
@@ -50,13 +70,18 @@ import com.example.urfungi.Recetas.RecipeListItem
 import com.example.urfungi.Recetas.recipes
 import com.google.firebase.auth.FirebaseAuth
 import org.w3c.dom.Text
+import java.util.concurrent.ExecutorService
+import java.util.concurrent.Executors
 
 class MainActivity : ComponentActivity() {
+
+    private lateinit var cameraExecutor : ExecutorService
     @OptIn(ExperimentalMaterial3Api::class)
     override fun onCreate(savedInstanceState: Bundle?) {
         installSplashScreen()
 
         super.onCreate(savedInstanceState)
+        cameraExecutor = Executors.newSingleThreadExecutor()
 
         // Verificar si el usuario está logeado
         val currentUser = FirebaseAuth.getInstance().currentUser
@@ -78,55 +103,50 @@ class MainActivity : ComponentActivity() {
                                     val destinoSeleccionado =
                                         destinoActual?.hierarchy?.any { it.route == destino.ruta } == true
 
-                                    NavigationBarItem(
-                                        selected = destinoSeleccionado,
-                                        onClick = {
-                                            if (!destinoSeleccionado) {
-                                                navController.navigate(destino.ruta) {
-                                                    popUpTo(navController.graph.findStartDestination().id)
-                                                    launchSingleTop = true
-                                                }
+                                NavigationBarItem(
+                                    selected = destinoSeleccionado,
+                                    onClick = {
+                                        if (!destinoSeleccionado) {
+                                            navController.navigate(destino.ruta) {
+                                                popUpTo(navController.graph.findStartDestination().id)
+                                                launchSingleTop = true
                                             }
-                                        },
-                                        icon = {
-                                            Icon(
-                                                imageVector = if (destinoSeleccionado) destino.iconoSeleccionado else destino.icono,
-                                                contentDescription = stringResource(id = destino.nombre)
-                                            )
-                                        },
-                                        label = {
-                                            Text(text = stringResource(id = destino.nombre))
                                         }
-                                    )
-                                }
+                                    },
+                                    icon = {
+                                        Icon(
+                                            imageVector = if (destinoSeleccionado) destino.iconoSeleccionado else destino.icono,
+                                            contentDescription = stringResource(id = destino.nombre)
+                                        )
+                                    },
+                                    label = {
+                                        Text(text = stringResource(id = destino.nombre))
+                                    }
+                                )
                             }
                         }
-                    ) { paddingValues ->
-                        Surface(
-                            modifier = Modifier
-                                .fillMaxSize()
-                                .padding(paddingValues)
+                    }
+                ) { paddingValues ->
+                    Surface(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .padding(paddingValues)
+                    ) {
+                        NavHost(
+                            navController = navController,
+                            startDestination = Destino.Destino3.ruta
                         ) {
-                            NavHost(
-                                navController = navController,
-                                startDestination = Destino.entries.first().ruta
-                            ) {
-                                composable(
-                                    route = Destino.Destino1.ruta,
-                                    enterTransition = {
-                                        slideIntoContainer(AnimatedContentTransitionScope.SlideDirection.Right)
-                                    },
-                                    exitTransition = {
-                                        slideOutOfContainer(AnimatedContentTransitionScope.SlideDirection.Left)
-                                    }
-                                ) {
-                                    Box(
-                                        modifier = Modifier.fillMaxSize(),
-                                        contentAlignment = Alignment.Center
-                                    ) {
-                                        Text(text = stringResource(id = Destino.Destino1.nombre))
-                                    }
+                            composable(
+                                route = Destino.Destino1.ruta,
+                                enterTransition = {
+                                    slideIntoContainer(AnimatedContentTransitionScope.SlideDirection.Right)
+                                },
+                                exitTransition = {
+                                    slideOutOfContainer(AnimatedContentTransitionScope.SlideDirection.Left)
                                 }
+                            ){
+                                SearchScreen()
+                            }
 
                                 composable(
                                     route = Destino.Destino2.ruta,
@@ -158,27 +178,155 @@ class MainActivity : ComponentActivity() {
                                     }
                                 }
 
-                                composable(
-                                    route = Destino.Destino3.ruta,
-                                    enterTransition = {
-                                        slideIntoContainer(AnimatedContentTransitionScope.SlideDirection.Left)
-                                    },
-                                    exitTransition = {
-                                        slideOutOfContainer(AnimatedContentTransitionScope.SlideDirection.Right)
+                            composable(
+                                route = Destino.Destino3.ruta,
+                                enterTransition = {
+                                    slideIntoContainer(AnimatedContentTransitionScope.SlideDirection.Left)
+                                },
+                                exitTransition = {
+                                    slideOutOfContainer(AnimatedContentTransitionScope.SlideDirection.Right)
+                                }
+                            ) {
+                                Scaffold(
+                                    topBar = {
+                                        Surface(
+                                            color = MaterialTheme.colorScheme.primary,
+                                            shape = RoundedCornerShape(0.dp)
+                                        ) {
+                                            TopAppBar(
+                                                title = {
+                                                    Box(
+                                                        modifier = Modifier.fillMaxSize(),
+                                                        contentAlignment = Alignment.Center
+                                                    ) {
+                                                        Text(text = "UrFungi")
+                                                    }
+                                                },
+                                                navigationIcon = {
+                                                    IconButton(onClick = { /* Handle navigation icon press */ }) {
+                                                        Icon(
+                                                            Icons.Filled.PlayArrow,
+                                                            contentDescription = "Navigation Icon"
+                                                        )
+                                                    }
+                                                },
+                                                actions = {
+                                                    IconButton(onClick = { /* Handle send message icon press */ }) {
+                                                        Icon(
+                                                            Icons.Filled.MailOutline,
+                                                            contentDescription = "Send Message Icon"
+                                                        )
+                                                    }
+                                                }
+                                            )
+                                        }
                                     }
-                                ) {
-                                    Box(
-                                        modifier = Modifier.fillMaxSize(),
-                                        contentAlignment = Alignment.Center
+                                ) { paddingValues ->
+                                    Surface(
+                                        modifier = Modifier.fillMaxSize()
                                     ) {
-                                        Text(text = stringResource(id = Destino.Destino3.nombre))
+                                        Box(
+                                            modifier = Modifier
+                                                .fillMaxSize()
+                                                .padding(paddingValues),
+                                            contentAlignment = Alignment.Center
+                                        ) {
+                                            Text(text = stringResource(id = Destino.Destino3.nombre))
+                                        }
                                     }
+                                }
+                            }
+
+                            composable(
+                                route = Destino.Destino4.ruta,
+                                enterTransition = {
+                                    when (initialState.destination.route) {
+                                        Destino.Destino3.ruta -> slideIntoContainer(
+                                            AnimatedContentTransitionScope.SlideDirection.Left
+                                        )
+
+                                        else -> slideIntoContainer(AnimatedContentTransitionScope.SlideDirection.Right)
+                                    }
+                                },
+                                exitTransition = {
+                                    when (targetState.destination.route) {
+                                        Destino.Destino3.ruta -> slideOutOfContainer(
+                                            AnimatedContentTransitionScope.SlideDirection.Right
+                                        )
+
+                                        else -> slideOutOfContainer(AnimatedContentTransitionScope.SlideDirection.Left)
+                                    }
+                                }
+                            ) {
+                                Box(
+                                    modifier = Modifier.fillMaxSize(),
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    LazyColumn {
+                                        items(recipes) { recipe ->
+                                            RecipeListItem(recipe = recipe)
+                                        }
+                                    }
+                                }
+                            }
+
+                            composable(
+                                route = Destino.Destino5.ruta,
+                                enterTransition = {
+                                    when (initialState.destination.route) {
+                                        Destino.Destino4.ruta -> slideIntoContainer(
+                                            AnimatedContentTransitionScope.SlideDirection.Left
+                                        )
+
+                                        else -> slideIntoContainer(AnimatedContentTransitionScope.SlideDirection.Right)
+                                    }
+                                },
+                                exitTransition = {
+                                    when (targetState.destination.route) {
+                                        Destino.Destino4.ruta -> slideOutOfContainer(
+                                            AnimatedContentTransitionScope.SlideDirection.Right
+                                        )
+
+                                        else -> slideOutOfContainer(AnimatedContentTransitionScope.SlideDirection.Left)
+                                    }
+                                }
+                            ) {
+                                Box(
+                                    modifier = Modifier
+                                        .fillMaxSize()
+                                        .padding(start = 16.dp, top = 40.dp, bottom = 40.dp),
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    SetasListScreen()
                                 }
                             }
                         }
                     }
+
                 }
             }
         }
+        requestPermissions()
     }
+
+    private fun requestPermissions() {
+    requestCameraPermissionIfMissing() { granted ->
+        if (granted) {
+            Toast.makeText(this, "Todos los permisos aceptados!", Toast.LENGTH_SHORT).show()
+        } else {
+    Toast.makeText(this, "No se han aceptado todos los permisos!", Toast.LENGTH_SHORT).show()
+        }
+    }
+    }
+
+    private fun requestCameraPermissionIfMissing(onResult: ((Boolean) -> Unit)) {
+        if (ContextCompat.checkSelfPermission(this, Manifest.permission.CAMERA) == PackageManager.PERMISSION_GRANTED)
+            onResult(true)
+         else
+            registerForActivityResult(ActivityResultContracts.RequestPermission()) {
+                onResult(it)
+            }.launch(Manifest.permission.CAMERA)
+
+    }
+
 }

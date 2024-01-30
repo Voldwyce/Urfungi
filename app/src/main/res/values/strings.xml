@@ -1,7 +1,7 @@
 <resources>
     <string name="app_name">Compose</string>
 
-    <string name="destino1">Buscar</string>
+    <string name="destino1">Añadir Seta</string>
     <string name="destino2">Mis Setas</string>
     <string name="destino3">Home</string>
     <string name="destino4">Recetas</string>
