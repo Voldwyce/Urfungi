@@ -11,41 +11,61 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.Button
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextField
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
-import androidx.navigation.NavGraph.Companion.findStartDestination
+import androidx.navigation.compose.NavHost
+import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import com.example.urfungi.ui.theme.AppTheme
+import com.google.firebase.Firebase
 import com.google.firebase.auth.FirebaseAuth
-
+import com.google.firebase.auth.auth
+import com.google.firebase.firestore.firestore
 
 class LoginAppActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
+
+
         setContent {
+
             AppTheme {
                 val navController = rememberNavController()
 
-                LoginScreen(
-                    navController = navController,
-                    onLoginSuccess = {
-                        // Navegar al MainActivity con el destino inicial (Destino1)
-                        navigateToMainActivity()
+                NavHost(navController = navController, startDestination = "login") {
+                    composable("login") {
+                        LoginScreen(
+                            navController = navController,
+                            onLoginSuccess = {
+                                // Navegar al MainActivity con el destino inicial (Destino1)
+                                navigateToMainActivity()
 
-                    },
-                    onRegisterClick = {}
-                )
+                            },
+                            onRegisterClick = {
+                                navController.navigate("register")
+                            }
+                        )
+                    }
+                    composable("register") {
+                        RegistrationScreen(navController = navController)
+                    }
+                }
             }
         }
     }
@@ -62,10 +82,9 @@ fun LoginScreen(
     onLoginSuccess: () -> Unit,
     onRegisterClick: () -> Unit
 ) {
-    val emailState = remember { mutableStateOf("") }
-    val passwordState = remember { mutableStateOf("") }
-    val areFieldsEmpty = emailState.value.isEmpty() || passwordState.value.isEmpty()
-    val errorMessageState = remember { mutableStateOf<String?>(null) }
+    var email by remember { mutableStateOf("") }
+    var password by remember { mutableStateOf("") }
+    var errorMessage by remember { mutableStateOf<String?>(null) }
 
     Box(
         modifier = Modifier
@@ -75,6 +94,7 @@ fun LoginScreen(
     ) {
         Column(
             modifier = Modifier.padding(bottom = 32.dp),
+            horizontalAlignment = Alignment.CenterHorizontally
         ) {
             // Imagen del logo
             Image(
@@ -83,7 +103,6 @@ fun LoginScreen(
                 modifier = Modifier
                     .size(200.dp)
                     .padding(bottom = 16.dp)
-                    .align(Alignment.CenterHorizontally)
             )
 
             // Título
@@ -91,38 +110,34 @@ fun LoginScreen(
                 text = "UrFungi",
                 style = MaterialTheme.typography.headlineLarge,
                 color = MaterialTheme.colorScheme.onBackground,
-                modifier = Modifier.align(Alignment.CenterHorizontally)
-                    .padding(bottom = 16.dp)
-
+                modifier = Modifier.padding(bottom = 16.dp)
             )
 
             // Campos de texto
-            TextField(
-                value = emailState.value,
-                onValueChange = { emailState.value = it },
+            OutlinedTextField(
+                value = email,
+                onValueChange = { email = it },
                 label = { Text("Correo electrónico") },
                 modifier = Modifier
                     .fillMaxWidth()
-                    .align(Alignment.CenterHorizontally)
+                    .padding(bottom = 10.dp)
             )
 
-            TextField(
-                value = passwordState.value,
-                onValueChange = { passwordState.value = it },
+            OutlinedTextField(
+                value = password,
+                onValueChange = { password = it },
                 label = { Text("Contraseña") },
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(bottom = 10.dp)
-                    .align(Alignment.CenterHorizontally)
             )
 
             // Mensaje de error
-            errorMessageState.value?.let { errorMessage ->
+            errorMessage?.let { errorMessage ->
                 Text(
                     text = errorMessage,
                     color = MaterialTheme.colorScheme.error,
                     modifier = Modifier.padding(bottom = 8.dp)
-                        .align(Alignment.CenterHorizontally)
                 )
             }
 
@@ -130,21 +145,20 @@ fun LoginScreen(
             Button(
                 onClick = {
                     // Verificar si los campos están vacíos
-                    if (areFieldsEmpty) {
-                        errorMessageState.value = "Por favor, rellena todos los campos."
+                    if (email.isEmpty() || password.isEmpty()) {
+                        errorMessage = "Por favor, rellena todos los campos."
                     } else {
                         // Utilizar la autenticación de Firebase para iniciar sesión
                         FirebaseAuth.getInstance().signInWithEmailAndPassword(
-                            emailState.value,
-                            passwordState.value
+                            email,
+                            password
                         ).addOnCompleteListener { signInTask ->
                             if (signInTask.isSuccessful) {
                                 // El inicio de sesión fue exitoso
                                 onLoginSuccess()
-
                             } else {
                                 // Hubo un error en el inicio de sesión, mostrar mensaje de error
-                                errorMessageState.value =
+                                errorMessage =
                                     signInTask.exception?.message ?: "Error al iniciar sesión"
                             }
                         }
@@ -153,7 +167,6 @@ fun LoginScreen(
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(bottom = 5.dp)
-                    .align(Alignment.CenterHorizontally)
             ) {
                 Text("Iniciar sesión")
             }
@@ -163,13 +176,133 @@ fun LoginScreen(
                 onClick = onRegisterClick,
                 modifier = Modifier
                     .fillMaxWidth()
-                    .align(Alignment.CenterHorizontally)
             ) {
                 Text("Registrar")
             }
         }
-
     }
-
 }
 
+@Composable
+fun RegistrationScreen(
+    navController: NavController
+) {
+    val auth = Firebase.auth
+
+    var name by remember { mutableStateOf("") }
+    var username by remember { mutableStateOf("") }
+    var birthdate by remember { mutableStateOf("") }
+    var email by remember { mutableStateOf("") }
+    var password by remember { mutableStateOf("") }
+    var errorMessage by remember { mutableStateOf("") }
+
+    Column(
+        modifier = Modifier.fillMaxSize().padding(16.dp),
+        horizontalAlignment = Alignment.CenterHorizontally
+    ) {
+        Text(
+            text = stringResource(R.string.register_title),
+            style = MaterialTheme.typography.headlineLarge,
+            modifier = Modifier.padding(bottom = 16.dp)
+        )
+
+        OutlinedTextField(
+            value = name,
+            onValueChange = { name = it },
+            label = { Text("Nombre") },
+            modifier = Modifier.fillMaxWidth().padding(bottom = 10.dp)
+        )
+
+        OutlinedTextField(
+            value = username,
+            onValueChange = { username = it },
+            label = { Text("Nombre de usuario") },
+            modifier = Modifier.fillMaxWidth().padding(bottom = 10.dp)
+        )
+
+        OutlinedTextField(
+            value = birthdate,
+            onValueChange = { birthdate = it },
+            label = { Text("Fecha de nacimiento") },
+            modifier = Modifier.fillMaxWidth().padding(bottom = 10.dp)
+        )
+
+        OutlinedTextField(
+            value = email,
+            onValueChange = { email = it },
+            label = { Text("Correo electrónico") },
+            modifier = Modifier.fillMaxWidth().padding(bottom = 10.dp),
+            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email)
+        )
+
+        OutlinedTextField(
+            value = password,
+            onValueChange = { password = it },
+            label = { Text("Contraseña") },
+            modifier = Modifier.fillMaxWidth().padding(bottom = 10.dp),
+            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password)
+        )
+
+        if (errorMessage.isNotEmpty()) {
+            Text(
+                text = errorMessage,
+                color = MaterialTheme.colorScheme.error,
+                modifier = Modifier.padding(top = 8.dp)
+            )
+        }
+
+        Button(
+            onClick = {
+                // Validar la entrada
+                if (name.isEmpty() || username.isEmpty() || birthdate.isEmpty() || email.isEmpty() || password.isEmpty()) {
+                    errorMessage = "Por favor, rellena todos los campos."
+                } else {
+                    // Crear una nueva cuenta de usuario con Firebase
+                    auth.createUserWithEmailAndPassword(email, password)
+                        .addOnCompleteListener { task ->
+                            if (task.isSuccessful) {
+                                val user = auth.currentUser
+                                val userId = user?.uid ?: ""
+
+                                // Crear un mapa con los datos del usuario
+                                val userData = hashMapOf(
+                                    "nombre" to name,
+                                    "username" to username,
+                                    "fechaNacimiento" to birthdate,
+                                    "email" to email
+                                    // Agrega otros campos según tus necesidades
+                                )
+
+                                // Agregar los datos a Firestore
+                                val db = Firebase.firestore
+                                db.collection("usuarios")
+                                    .document(userId)
+                                    .set(userData)
+                                    .addOnSuccessListener {
+                                        // Registro exitoso, navegar a la pantalla de inicio de sesión
+                                        navController.popBackStack("login", inclusive = false)
+                                    }
+                                    .addOnFailureListener { e ->
+                                        // Mostrar mensaje de error al guardar en Firestore
+                                        errorMessage = "Error al guardar datos en Firestore: ${e.message}"
+                                    }
+                            } else {
+                                // Mostrar mensaje de error al registrar en Firebase Auth
+                                errorMessage = task.exception?.message ?: "Error al registrarse"
+                            }
+                        }
+                }
+            },
+            modifier = Modifier.fillMaxWidth().padding(top = 8.dp)
+        ) {
+            Text(stringResource(R.string.Registrar_boton))
+        }
+
+        Button(
+            onClick = { navController.popBackStack() },
+            modifier = Modifier.fillMaxWidth().padding(top = 8.dp)
+        ) {
+            Text(stringResource(R.string.Cancelar_boton))
+        }
+    }
+}
