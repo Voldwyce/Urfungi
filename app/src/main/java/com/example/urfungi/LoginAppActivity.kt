@@ -159,7 +159,7 @@ fun LoginScreen(
                                 val userId = user?.uid ?: ""
 
                                 val db = Firebase.firestore
-                                db.collection("users")
+                                db.collection("usuarios")
                                     .document(userId)
                                     .get()
                                     .addOnSuccessListener { document ->
@@ -289,12 +289,11 @@ fun RegistrationScreen(
                                     "username" to username,
                                     "fechaNacimiento" to birthdate,
                                     "email" to email
-                                    // Agrega otros campos según tus necesidades
                                 )
 
                                 // Agregar los datos a Firestore
                                 val db = Firebase.firestore
-                                db.collection("users") // Cambia "usuarios" a "users"
+                                db.collection("usuarios") // Cambia "usuarios" a "users"
                                     .document(userId)
                                     .set(userData)
                                     .addOnSuccessListener {
