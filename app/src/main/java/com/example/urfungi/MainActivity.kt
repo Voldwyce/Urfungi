@@ -52,6 +52,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.sp
 import com.example.urfungi.Curiosidades.SetasListScreen
 import com.example.urfungi.QuizJuego.Question
+import com.example.urfungi.QuizJuego.QuizScreen
 import com.example.urfungi.QuizJuego.questions
 import com.example.urfungi.Recetas.RecetasSetasListScreen
 
@@ -290,7 +291,6 @@ class MainActivity : ComponentActivity() {
                                     contentAlignment = Alignment.Center
                                 ) {
                                     QuizScreen(questions = questions)
-
                                 }
                             }
                         }
@@ -300,137 +300,4 @@ class MainActivity : ComponentActivity() {
             }
         }
     }
-
-    @Composable
-    fun QuizScreen(questions: List<Question>) {
-        var currentQuestionIndex by remember { mutableStateOf(0) }
-        var isGameOver by remember { mutableStateOf(false) }
-
-        if (isGameOver) {
-            GameOverScreen(
-                score = currentQuestionIndex + 1,
-                onRestartClicked = {
-                    currentQuestionIndex = 0
-                    isGameOver = false
-                }
-            )
-        } else {
-            val currentQuestion = questions[currentQuestionIndex]
-
-            Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(16.dp)
-            ) {
-                Text(
-                    text = "Quiz Game",
-                    fontSize = 18.sp,
-                    fontWeight = FontWeight.Bold,
-                    modifier = Modifier.padding(10.dp)
-                )
-
-                Card(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(8.dp),
-                    shape = RoundedCornerShape(12.dp)
-                ) {
-                    Column(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                    )
-                    {
-                        Image(
-                            painter = painterResource(id = currentQuestion.imagenResId),
-                            contentDescription = null,
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .height(200.dp)
-                                .clip(
-                                    RoundedCornerShape(
-                                        topStart = 12.dp,
-                                        topEnd = 12.dp,
-                                        bottomEnd = 0.dp,
-                                        bottomStart = 0.dp
-                                    )
-                                ),
-                            contentScale = ContentScale.Crop
-                        )
-                        Spacer(modifier = Modifier.height(16.dp))
-
-                        currentQuestion.answers.forEach { answer ->
-                            Button(
-                                onClick = {
-                                    if (answer == currentQuestion.correctAnswer) {
-                                        if (currentQuestionIndex == questions.lastIndex) {
-                                            isGameOver = true
-                                        } else {
-                                            currentQuestionIndex++
-                                        }
-                                    } else {
-                                        isGameOver = true
-                                    }
-                                },
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .padding(8.dp)
-                            ) {
-                                Text(text = answer)
-                            }
-                            Spacer(modifier = Modifier.height(8.dp))
-                        }
-                    }
-                }
-            }
-        }
-    }
-
-
-    @Composable
-    fun GameOverScreen(score: Int, onRestartClicked: () -> Unit) {
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(16.dp),
-            verticalArrangement = Arrangement.Center,
-            horizontalAlignment = Alignment.CenterHorizontally
-        ) {
-            Text(
-                text = "¡Juego terminado!",
-                fontSize = 24.sp,
-                fontWeight = FontWeight.Bold,
-                modifier = Modifier.padding(16.dp)
-            )
-
-            Text(
-                text = "Tu puntuación es $score/5",
-                fontSize = 18.sp,
-                modifier = Modifier.padding(8.dp)
-            )
-
-            Spacer(modifier = Modifier.height(13.dp))
-
-            Text(
-                text = when {
-                    score == 5 -> "¡Excelente! Sabes mucho sobre el tema."
-                    score >= 3 -> "¡Buen trabajo! Sigues mejorando."
-                    else -> "¡Sigue practicando! Puedes hacerlo mejor."
-                },
-                fontSize = 16.sp,
-                modifier = Modifier.padding(8.dp)
-            )
-
-            Spacer(modifier = Modifier.height(16.dp))
-
-            Button(
-                onClick = { onRestartClicked() },
-                modifier = Modifier
-                    .fillMaxWidth(0.5f)
-            ) {
-                Text(text = "Volver a jugar")
-            }
-        }
-    }
-
-
 }
