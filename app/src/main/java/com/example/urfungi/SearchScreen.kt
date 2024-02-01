@@ -69,6 +69,7 @@ import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat.getSystemService
 import androidx.core.net.toFile
 import androidx.lifecycle.lifecycleScope
+import androidx.navigation.compose.rememberNavController
 import coil.ImageLoader
 import coil.compose.rememberImagePainter
 import coil.request.ImageRequest
@@ -91,18 +92,6 @@ fun SearchScreen() {
         override fun onStatusChanged(provider: String?, status: Int, extras: Bundle?) {}
         override fun onProviderEnabled(provider: String) {}
         override fun onProviderDisabled(provider: String) {}
-    }
-
-    LaunchedEffect(Unit) {
-        val hasLocationPermission = ActivityCompat.checkSelfPermission(context, Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED &&
-                ActivityCompat.checkSelfPermission(context, Manifest.permission.ACCESS_COARSE_LOCATION) == PackageManager.PERMISSION_GRANTED
-
-        if (!hasLocationPermission) {
-            // Solicitar permisos de ubicación aquí
-            ActivityCompat.requestPermissions(context as Activity, arrayOf(Manifest.permission.ACCESS_FINE_LOCATION, Manifest.permission.ACCESS_COARSE_LOCATION), 0)
-        } else {
-            locationManager?.requestLocationUpdates(LocationManager.GPS_PROVIDER, 0L, 0f, locationListener)
-        }
     }
 
     Box(
@@ -131,45 +120,51 @@ fun MushroomForm(
     var capturedImageUri by remember { mutableStateOf<Uri?>(null) }
     var locationString by remember { mutableStateOf("Ubicación no disponible") }
 
-    var showDialog by remember { mutableStateOf(false) }
-    val hasUnsavedChanges = title.isNotEmpty() || description.isNotEmpty() || mushroomType.isNotEmpty() || photoFile != null
+    var showDialoge by remember { mutableStateOf(false) }
 
     val lifecycleOwner = LocalLifecycleOwner.current
-    val onBackPressedDispatcherOwner = LocalOnBackPressedDispatcherOwner.current
+
+    val dispatcher = LocalOnBackPressedDispatcherOwner.current?.onBackPressedDispatcher
 
     val backCallback = remember {
         object : OnBackPressedCallback(true) {
             override fun handleOnBackPressed() {
-                if (hasUnsavedChanges) {
-                    showDialog = true
-                } else {
+                if (title.isBlank() && description.isBlank() && mushroomType.isBlank() && capturedImageUri == null) {
+                    // Si todos los campos están vacíos, ejecuta la acción de retroceso directamente
                     this.isEnabled = false
-                    onBackPressedDispatcherOwner?.onBackPressedDispatcher?.onBackPressed()
+                    dispatcher?.onBackPressed()
+                } else {
+                    // Si no, muestra el diálogo
+                    showDialoge = true
                 }
             }
         }
     }
 
-    if (showDialog) {
+    dispatcher?.addCallback(lifecycleOwner, backCallback)
+
+    if (showDialoge) {
         AlertDialog(
-            onDismissRequest = { showDialog = false },
+            onDismissRequest = { showDialoge = false },
             title = { Text("Advertencia") },
             text = { Text("Tienes cambios no guardados. Si sales ahora, perderás estos cambios.") },
             confirmButton = {
                 Button(onClick = {
-                    showDialog = false
-                    onNavigateAway()
+                    showDialoge = false
+                    backCallback.isEnabled = false // Deshabilita el callback
+                    dispatcher?.onBackPressed() // Funciona como el botón de retroceso
                 }) {
                     Text("Salir de todos modos")
                 }
             },
             dismissButton = {
-                Button(onClick = { showDialog = false }) {
+                Button(onClick = { showDialoge = false }) {
                     Text("Cancelar")
                 }
             }
         )
     }
+
     if (cameraInitialized) {
         Box(modifier = Modifier.fillMaxSize()) {
             AndroidView({ previewView }, modifier = Modifier.fillMaxSize()) { view ->
@@ -359,16 +354,15 @@ fun MushroomForm(
             }
             Spacer(modifier = Modifier.height(16.dp))
 
-            TextField(value = locationString,
+          /*  TextField(value = locationString,
                 onValueChange = {},
                 label = { Text("Ubicación") },
                 modifier = Modifier.fillMaxWidth(),
                 enabled = false // Deshabilitar la edición de este campo
-            )
+            ) */
 
             Spacer(modifier = Modifier.height(16.dp))
             Button(onClick = {
-                // Por completar...
             }, modifier = Modifier.fillMaxWidth(),
                 colors = ButtonDefaults.buttonColors(
                     containerColor = Color.Black.copy(alpha = 0.5f), contentColor = Color.White

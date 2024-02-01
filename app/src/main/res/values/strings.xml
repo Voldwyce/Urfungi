@@ -8,4 +8,5 @@
     <string name="destino5">Curio</string>
 
     <string name="title_activity_login">LoginActivity</string>
+    <string name="title_activity_maps">maps</string>
 </resources>

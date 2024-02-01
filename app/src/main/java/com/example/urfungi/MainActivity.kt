@@ -1,5 +1,6 @@
 package com.example.urfungi
 
+import MapScreen
 import android.content.pm.PackageManager
 import android.os.Bundle
 import android.Manifest
@@ -8,6 +9,7 @@ import android.content.Intent
 import android.net.Uri
 import android.os.Build
 import android.os.Environment
+import android.preference.PreferenceManager
 import android.provider.Settings
 import android.util.Log
 import android.widget.Toast
@@ -69,6 +71,8 @@ import com.example.urfungi.Curiosidades.setas
 import com.example.urfungi.Recetas.RecipeListItem
 import com.example.urfungi.Recetas.recipes
 import com.google.firebase.auth.FirebaseAuth
+import org.osmdroid.config.Configuration
+import org.osmdroid.library.BuildConfig
 import org.w3c.dom.Text
 import java.util.concurrent.ExecutorService
 import java.util.concurrent.Executors
@@ -77,9 +81,14 @@ class MainActivity : ComponentActivity() {
 
     private lateinit var cameraExecutor: ExecutorService
 
+
     @OptIn(ExperimentalMaterial3Api::class)
     override fun onCreate(savedInstanceState: Bundle?) {
         installSplashScreen()
+
+        val ctx = applicationContext
+        Configuration.getInstance().load(ctx, PreferenceManager.getDefaultSharedPreferences(ctx))
+        Configuration.getInstance().userAgentValue = BuildConfig.APPLICATION_ID
 
         super.onCreate(savedInstanceState)
         cameraExecutor = Executors.newSingleThreadExecutor()
@@ -152,27 +161,10 @@ class MainActivity : ComponentActivity() {
                                 composable(
                                     route = Destino.Destino2.ruta,
                                     enterTransition = {
-                                        when (initialState.destination.route) {
-                                            Destino.Destino1.ruta -> slideIntoContainer(
-                                                AnimatedContentTransitionScope.SlideDirection.Left
-                                            )
-
-                                            else -> slideIntoContainer(
-                                                AnimatedContentTransitionScope.SlideDirection.Right
-                                            )
-                                        }
+                                        slideIntoContainer(AnimatedContentTransitionScope.SlideDirection.Right)
                                     },
                                     exitTransition = {
-                                        when (targetState.destination.route) {
-                                            Destino.Destino1.ruta -> slideOutOfContainer(
-                                                AnimatedContentTransitionScope.SlideDirection.Right
-                                            )
-
-                                            else -> slideOutOfContainer(
-                                                AnimatedContentTransitionScope.SlideDirection.Left
-                                            )
-                                        }
-
+                                        slideOutOfContainer(AnimatedContentTransitionScope.SlideDirection.Left)
                                     }
                                 ) {
                                     Box(
@@ -181,6 +173,7 @@ class MainActivity : ComponentActivity() {
                                     ) {
                                         Text(text = stringResource(id = Destino.Destino2.nombre))
                                     }
+                                    MapScreen()
                                 }
 
                                 composable(
@@ -325,16 +318,39 @@ class MainActivity : ComponentActivity() {
     }
 
     private fun requestPermissions() {
-        requestCameraPermissionIfMissing() { granted ->
-            if (granted) {
-                Toast.makeText(this, "Todos los permisos aceptados!", Toast.LENGTH_SHORT).show()
-            } else {
-                Toast.makeText(
-                    this,
-                    "No se han aceptado todos los permisos!",
-                    Toast.LENGTH_SHORT
-                ).show()
+        requestCameraPermissionIfMissing { cameraGranted ->
+            requestLocationPermissionsIfMissing { locationGranted ->
+                if (cameraGranted && locationGranted) {
+                    Toast.makeText(this, "Todos los permisos aceptados!", Toast.LENGTH_SHORT).show()
+                } else {
+                    Toast.makeText(
+                        this,
+                        "No se han aceptado todos los permisos!",
+                        Toast.LENGTH_SHORT
+                    ).show()
+                }
             }
+        }
+    }
+
+    private fun requestLocationPermissionsIfMissing(onResult: ((Boolean) -> Unit)) {
+        if (ContextCompat.checkSelfPermission(
+                this,
+                Manifest.permission.ACCESS_FINE_LOCATION
+            ) == PackageManager.PERMISSION_GRANTED &&
+            ContextCompat.checkSelfPermission(
+                this,
+                Manifest.permission.ACCESS_COARSE_LOCATION
+            ) == PackageManager.PERMISSION_GRANTED
+        ) {
+            onResult(true)
+        } else {
+            registerForActivityResult(ActivityResultContracts.RequestMultiplePermissions()) { permissions ->
+                val granted = permissions.entries.all {
+                    it.value == true
+                }
+                onResult(granted)
+            }.launch(arrayOf(Manifest.permission.ACCESS_FINE_LOCATION, Manifest.permission.ACCESS_COARSE_LOCATION))
         }
     }
 

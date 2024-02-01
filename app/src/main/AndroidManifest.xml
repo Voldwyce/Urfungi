@@ -2,9 +2,9 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools">
 
-    <uses-permission android:name="android.permission.CAMERA"/>
-    <uses-permission android:name="android.hardware.camera"/>
-    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE"/>
+    <uses-permission android:name="android.permission.CAMERA" />
+    <uses-permission android:name="android.hardware.camera" />
+    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
     <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
     <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
 
@@ -19,6 +19,11 @@
         android:supportsRtl="true"
         android:theme="@style/Theme.App.Starting"
         tools:targetApi="34">
+        <activity
+            android:name=".maps"
+            android:exported="false"
+            android:label="@string/title_activity_maps"
+            android:theme="@style/Theme.App.Starting" />
 
         <meta-data
             android:name="com.google.firebase.auth.FirebaseAuthProvider"
@@ -34,13 +39,10 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
-
         <activity
             android:name=".MainActivity"
             android:exported="true"
-            android:theme="@style/Theme.App.Starting">
-        </activity>
-
+            android:theme="@style/Theme.App.Starting"></activity>
     </application>
 
 </manifest>
