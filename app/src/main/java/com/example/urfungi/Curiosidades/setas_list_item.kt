@@ -231,7 +231,7 @@ fun SetasListItem(seta: Seta) {
             ) {
                 Column {
                     Spacer(modifier = Modifier.height(25.dp))
-                    Text(text = seta.nombre, fontWeight = FontWeight.Bold, color = Color.Black)
+                    Text(text = seta.nombre, fontWeight = FontWeight.Bold, color = Color.LightGray)
                     if (!isExpanded) {
                         Text(text = seta.descripcion.substring(0, min(14, seta.descripcion.length)))
                     } else {
