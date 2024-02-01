@@ -36,6 +36,7 @@ import com.google.firebase.Firebase
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.auth.auth
 import com.google.firebase.firestore.firestore
+import com.google.firebase.auth.ktx.auth
 
 class LoginAppActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -141,7 +142,6 @@ fun LoginScreen(
                 )
             }
 
-            // Botón de inicio de sesión
             Button(
                 onClick = {
                     // Verificar si los campos están vacíos
@@ -155,6 +155,25 @@ fun LoginScreen(
                         ).addOnCompleteListener { signInTask ->
                             if (signInTask.isSuccessful) {
                                 // El inicio de sesión fue exitoso
+                                val user = Firebase.auth.currentUser
+                                val userId = user?.uid ?: ""
+
+                                val db = Firebase.firestore
+                                db.collection("users")
+                                    .document(userId)
+                                    .get()
+                                    .addOnSuccessListener { document ->
+                                        if (document != null) {
+                                            val name = document.getString("nombre")
+                                            val username = document.getString("username")
+                                            val birthdate = document.getString("fechaNacimiento")
+                                            val email = document.getString("email")
+                                            // Ahora puedes usar estos datos en tu aplicación
+                                        } else { }
+                                    }
+                                    .addOnFailureListener { e ->
+                                    }
+
                                 onLoginSuccess()
                             } else {
                                 // Hubo un error en el inicio de sesión, mostrar mensaje de error
@@ -275,7 +294,7 @@ fun RegistrationScreen(
 
                                 // Agregar los datos a Firestore
                                 val db = Firebase.firestore
-                                db.collection("usuarios")
+                                db.collection("users") // Cambia "usuarios" a "users"
                                     .document(userId)
                                     .set(userData)
                                     .addOnSuccessListener {
