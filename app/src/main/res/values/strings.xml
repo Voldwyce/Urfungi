@@ -6,6 +6,7 @@
     <string name="destino3">Home</string>
     <string name="destino4">Recetas</string>
     <string name="destino5">Curio</string>
+    <string name="destinojuego">Juego</string>
 
     <string name="title_activity_login">LoginActivity</string>
     <string name="title_activity_maps">maps</string>
