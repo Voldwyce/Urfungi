@@ -5,6 +5,7 @@ import android.content.pm.PackageManager
 import android.os.Bundle
 import android.Manifest
 import android.content.ContentValues.TAG
+import android.content.Context
 import android.content.Intent
 import android.net.Uri
 import android.os.Build
@@ -80,23 +81,85 @@ import com.example.urfungi.QuizJuego.QuizScreen
 import com.example.urfungi.QuizJuego.questions
 import com.example.urfungi.Recetas.RecetasSetasListScreen
 import com.example.urfungi.Curiosidades.setas
-import com.example.urfungi.Recetas.RecipeListItem
 import com.example.urfungi.Recetas.recipes
+import com.google.firebase.Firebase
 import com.google.firebase.auth.FirebaseAuth
+import com.google.firebase.database.FirebaseDatabase
+import com.google.firebase.firestore.firestore
+import com.google.gson.Gson
+import com.google.gson.reflect.TypeToken
 import org.osmdroid.config.Configuration
 import org.osmdroid.library.BuildConfig
 import org.w3c.dom.Text
+import java.io.IOException
 import java.util.concurrent.ExecutorService
 import java.util.concurrent.Executors
+
 
 class MainActivity : ComponentActivity() {
 
     private lateinit var cameraExecutor: ExecutorService
 
+    /*
+    private fun uploadJsonToFirebase() {
+        val jsonString = getJsonDataFromAsset(this, "setas.json")
+        if (jsonString != null) {
+            val listType = object : TypeToken<List<Setas>>() {}.type
+            val setas: List<Setas> = Gson().fromJson(jsonString, listType)
+
+            val auth = FirebaseAuth.getInstance()
+            val currentUser = auth.currentUser
+
+            if (currentUser != null) {
+                val db = Firebase.firestore
+                setas.forEach { seta ->
+                    val setaData = hashMapOf(
+                        "id" to seta.id,
+                        "Nombre" to seta.Nombre,
+                        "NombreCientifico" to seta.NombreCientifico,
+                        "Familia" to seta.Familia,
+                        "Temporada" to seta.Temporada,
+                        "Imagen" to seta.Imagen,
+                        "Comestible" to seta.Comestible,
+                        "Toxicidad" to seta.Toxicidad,
+                        "Descripcion" to seta.Descripcion,
+                        "Habitat" to seta.Habitat,
+                        "Dificultad" to seta.Dificultad,
+                        "Curiosidades" to seta.Curiosidades
+                    )
+
+                    db.collection("setas")
+                        .document(seta.Nombre)
+                        .set(setaData)
+                        .addOnSuccessListener {
+                        }
+                        .addOnFailureListener { e ->
+                            Log.d("Firebase", "Error al guardar datos en Firestore: ${e.message}")
+                        }
+                }
+            } else {
+            }
+        }
+    }
+    */
+
+    private fun getJsonDataFromAsset(context: Context, fileName: String): String? {
+        return try {
+            context.assets.open(fileName).bufferedReader().use { it.readText() }
+        } catch (ioException: IOException) {
+            ioException.printStackTrace()
+            return null
+        }
+    }
 
     @OptIn(ExperimentalMaterial3Api::class)
     override fun onCreate(savedInstanceState: Bundle?) {
         installSplashScreen()
+
+        /*
+        uploadJsonToFirebase()
+        */
+
 
         val ctx = applicationContext
         Configuration.getInstance().load(ctx, PreferenceManager.getDefaultSharedPreferences(ctx))

@@ -3,6 +3,7 @@ package com.example.urfungi
 import android.Manifest
 import android.app.Activity
 import android.content.ContentValues
+import android.content.ContentValues.TAG
 import kotlinx.coroutines.launch
 import android.content.Context
 import android.content.pm.PackageManager
@@ -51,6 +52,7 @@ import android.location.Location
 import android.location.LocationListener
 import android.location.LocationManager
 import android.net.Uri
+import android.util.Log
 import androidx.activity.ComponentActivity
 import androidx.activity.OnBackPressedCallback
 import androidx.activity.OnBackPressedDispatcher
@@ -74,6 +76,8 @@ import coil.ImageLoader
 import coil.compose.rememberImagePainter
 import coil.request.ImageRequest
 import com.google.common.util.concurrent.ListenableFuture
+import com.google.firebase.Firebase
+import com.google.firebase.firestore.firestore
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -119,6 +123,8 @@ fun MushroomForm(
     var cameraInitialized by remember { mutableStateOf(false) }
     var capturedImageUri by remember { mutableStateOf<Uri?>(null) }
     var locationString by remember { mutableStateOf("Ubicación no disponible") }
+    val mushroomNames = getMushroomNames()
+
 
     var showDialoge by remember { mutableStateOf(false) }
 
@@ -238,7 +244,7 @@ fun MushroomForm(
                                         Toast.LENGTH_SHORT
                                     ).show()
                                     cameraInitialized =
-                                        false // Cerrar la cámara después de tomar la foto
+                                        false
 
                                     // Guardar la imagen en la galería
                                     (context as ComponentActivity).lifecycleScope.launch {
@@ -287,7 +293,7 @@ fun MushroomForm(
             capturedImageUri?.let { uri ->
                 Image(painter = rememberImagePainter(data = uri), contentDescription = "Captured Image", modifier = Modifier.height(200.dp))
             }
-            Spacer(modifier = Modifier.height(16.dp)) // Separación entre la foto y el título
+            Spacer(modifier = Modifier.height(16.dp))
             TextField(value = title,
                 onValueChange = { title = it },
                 label = { Text("Title") },
@@ -301,34 +307,32 @@ fun MushroomForm(
             )
             Spacer(modifier = Modifier.height(16.dp))
             // Lista de setas (prueba)
-            val mushroomTypes = listOf("Type 1", "Type 2", "Type 3")
             var showDialog by remember { mutableStateOf(false) }
-            var selectedTypeIndex by remember { mutableStateOf(0) }
 
             Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
                 Button(onClick = { showDialog = true },
                     modifier = Modifier
-                        .width(150.dp) // Define un ancho fijo
-                        .height(50.dp), // Define un alto fijo para hacer el botón cuadrado
+                        .width(150.dp)
+                        .height(50.dp),
                     colors = ButtonDefaults.buttonColors(
                         containerColor = Color.Black.copy(alpha = 0.5f), contentColor = Color.White
                     ),
-                    shape = RectangleShape // Hace que el botón sea cuadrado sin bordes redondeados
+                    shape = RectangleShape
                 ) {
                     Text(mushroomType.ifEmpty { "Tipo de seta" })
                 }
 
-                Spacer(modifier = Modifier.width(1.dp)) // Reduce aún más el espacio entre los botones
+                Spacer(modifier = Modifier.width(1.dp))
 
                 Button(onClick = {
                     cameraInitialized = true
                 }, modifier = Modifier
-                    .width(150.dp) // Define un ancho fijo
-                    .height(50.dp), // Define un alto fijo para hacer el botón cuadrado
+                    .width(150.dp)
+                    .height(50.dp),
                     colors = ButtonDefaults.buttonColors(
                         containerColor = Color.Black.copy(alpha = 0.5f), contentColor = Color.White
                     ),
-                    shape = RectangleShape // Hace que el botón sea cuadrado sin bordes redondeados
+                    shape = RectangleShape
                 ) {
                     Text("Camara")
                 }
@@ -336,16 +340,15 @@ fun MushroomForm(
 
             if (showDialog) {
                 AlertDialog(onDismissRequest = { showDialog = false },
-                    title = { Text(text = "Select Mushroom Type") },
+                    title = { Text(text = "Selecciona una seta") },
                     text = {
                         Column {
-                            mushroomTypes.forEachIndexed { index, type ->
+                            mushroomNames.forEachIndexed { index, name ->
                                 TextButton(onClick = {
-                                    selectedTypeIndex = index
-                                    mushroomType = type
+                                    mushroomType = name
                                     showDialog = false
                                 }) {
-                                    Text(text = type)
+                                    Text(text = name)
                                 }
                             }
                         }
@@ -383,4 +386,23 @@ fun createPhotoFile(context: Context): File {
     )
 }
 
+private fun getMushroomNames(): List<String> {
+    val db = Firebase.firestore
+    val mushroomNames = mutableListOf<String>()
 
+    db.collection("setas")
+        .get()
+        .addOnSuccessListener { documents ->
+            for (document in documents) {
+                val name = document.getString("Nombre")
+                if (name != null) {
+                    mushroomNames.add(name)
+                }
+            }
+        }
+        .addOnFailureListener { exception ->
+            Log.w(TAG, "Error al obtener los documentos: ", exception)
+        }
+
+    return mushroomNames
+}
