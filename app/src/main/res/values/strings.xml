@@ -9,4 +9,13 @@
 
     <string name="title_activity_login">LoginActivity</string>
     <string name="title_activity_maps">maps</string>
+    <string name="register_title">\n</string>
+    <string name="name">\n</string>
+    <string name="username" />
+    <string name="birthdate" />
+    <string name="email" />
+    <string name="password" />
+    <string name="title_activity_register">RegisterActivity</string>
+    <string name="Registrar_boton">Registrar</string>
+    <string name="Cancelar_boton">Cancelar</string>
 </resources>

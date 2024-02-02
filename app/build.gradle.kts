@@ -71,6 +71,8 @@ dependencies {
     implementation(platform("androidx.compose:compose-bom:2023.08.00"))
     implementation(platform("androidx.compose:compose-bom:2023.08.00"))
     implementation("com.google.android.gms:play-services-location:21.1.0")
+    implementation(platform("androidx.compose:compose-bom:2023.08.00"))
+    implementation("com.google.firebase:firebase-firestore:24.10.1")
     testImplementation("junit:junit:4.13.2")
     androidTestImplementation("androidx.test.ext:junit:1.1.5")
     androidTestImplementation("androidx.test.espresso:espresso-core:3.5.1")
@@ -88,4 +90,5 @@ dependencies {
     implementation("androidx.activity:activity-ktx:1.8.2")
     implementation("org.osmdroid:osmdroid-android:6.1.10")
     implementation ("androidx.lifecycle:lifecycle-runtime-ktx:2.7.0")
+
 }
