@@ -1,13 +1,16 @@
 package com.example.urfungi
 
+import MapScreen
 import android.content.pm.PackageManager
 import android.os.Bundle
 import android.Manifest
 import android.content.ContentValues.TAG
+import android.content.Context
 import android.content.Intent
 import android.net.Uri
 import android.os.Build
 import android.os.Environment
+import android.preference.PreferenceManager
 import android.provider.Settings
 import android.util.Log
 import android.widget.Toast
@@ -20,15 +23,14 @@ import androidx.camera.lifecycle.ProcessCameraProvider
 import androidx.camera.view.PreviewView
 import androidx.compose.animation.AnimatedContentTransitionScope
 import androidx.compose.foundation.Image
-import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material3.Icon
@@ -54,32 +56,114 @@ import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import com.example.urfungi.ui.theme.AppTheme
 import androidx.compose.material.icons.filled.*
+import androidx.compose.material3.Button
+import androidx.compose.material3.Card
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.LifecycleOwner
 import com.example.urfungi.Curiosidades.SetasListItem
+import androidx.compose.ui.unit.sp
 import com.example.urfungi.Curiosidades.SetasListScreen
+import com.example.urfungi.QuizJuego.Question
+import com.example.urfungi.QuizJuego.QuizScreen
+import com.example.urfungi.QuizJuego.questions
+import com.example.urfungi.Recetas.RecetasSetasListScreen
 import com.example.urfungi.Curiosidades.setas
-import com.example.urfungi.Recetas.RecipeListItem
 import com.example.urfungi.Recetas.recipes
+import com.google.firebase.Firebase
 import com.google.firebase.auth.FirebaseAuth
+import com.google.firebase.database.FirebaseDatabase
+import com.google.firebase.firestore.firestore
+import com.google.gson.Gson
+import com.google.gson.reflect.TypeToken
+import org.osmdroid.config.Configuration
+import org.osmdroid.library.BuildConfig
 import org.w3c.dom.Text
+import java.io.IOException
 import java.util.concurrent.ExecutorService
 import java.util.concurrent.Executors
+
 
 class MainActivity : ComponentActivity() {
 
     private lateinit var cameraExecutor: ExecutorService
 
+    /*
+    private fun uploadJsonToFirebase() {
+        val jsonString = getJsonDataFromAsset(this, "setas.json")
+        if (jsonString != null) {
+            val listType = object : TypeToken<List<Setas>>() {}.type
+            val setas: List<Setas> = Gson().fromJson(jsonString, listType)
+
+            val auth = FirebaseAuth.getInstance()
+            val currentUser = auth.currentUser
+
+            if (currentUser != null) {
+                val db = Firebase.firestore
+                setas.forEach { seta ->
+                    val setaData = hashMapOf(
+                        "id" to seta.id,
+                        "Nombre" to seta.Nombre,
+                        "NombreCientifico" to seta.NombreCientifico,
+                        "Familia" to seta.Familia,
+                        "Temporada" to seta.Temporada,
+                        "Imagen" to seta.Imagen,
+                        "Comestible" to seta.Comestible,
+                        "Toxicidad" to seta.Toxicidad,
+                        "Descripcion" to seta.Descripcion,
+                        "Habitat" to seta.Habitat,
+                        "Dificultad" to seta.Dificultad,
+                        "Curiosidades" to seta.Curiosidades
+                    )
+
+                    db.collection("setas")
+                        .document(seta.Nombre)
+                        .set(setaData)
+                        .addOnSuccessListener {
+                        }
+                        .addOnFailureListener { e ->
+                            Log.d("Firebase", "Error al guardar datos en Firestore: ${e.message}")
+                        }
+                }
+            } else {
+            }
+        }
+    }
+    */
+
+    private fun getJsonDataFromAsset(context: Context, fileName: String): String? {
+        return try {
+            context.assets.open(fileName).bufferedReader().use { it.readText() }
+        } catch (ioException: IOException) {
+            ioException.printStackTrace()
+            return null
+        }
+    }
+
     @OptIn(ExperimentalMaterial3Api::class)
     override fun onCreate(savedInstanceState: Bundle?) {
         installSplashScreen()
+
+        /*
+        uploadJsonToFirebase()
+        */
+
+
+        val ctx = applicationContext
+        Configuration.getInstance().load(ctx, PreferenceManager.getDefaultSharedPreferences(ctx))
+        Configuration.getInstance().userAgentValue = BuildConfig.APPLICATION_ID
 
         super.onCreate(savedInstanceState)
         cameraExecutor = Executors.newSingleThreadExecutor()
@@ -152,27 +236,10 @@ class MainActivity : ComponentActivity() {
                                 composable(
                                     route = Destino.Destino2.ruta,
                                     enterTransition = {
-                                        when (initialState.destination.route) {
-                                            Destino.Destino1.ruta -> slideIntoContainer(
-                                                AnimatedContentTransitionScope.SlideDirection.Left
-                                            )
-
-                                            else -> slideIntoContainer(
-                                                AnimatedContentTransitionScope.SlideDirection.Right
-                                            )
-                                        }
+                                        slideIntoContainer(AnimatedContentTransitionScope.SlideDirection.Right)
                                     },
                                     exitTransition = {
-                                        when (targetState.destination.route) {
-                                            Destino.Destino1.ruta -> slideOutOfContainer(
-                                                AnimatedContentTransitionScope.SlideDirection.Right
-                                            )
-
-                                            else -> slideOutOfContainer(
-                                                AnimatedContentTransitionScope.SlideDirection.Left
-                                            )
-                                        }
-
+                                        slideOutOfContainer(AnimatedContentTransitionScope.SlideDirection.Left)
                                     }
                                 ) {
                                     Box(
@@ -181,6 +248,7 @@ class MainActivity : ComponentActivity() {
                                     ) {
                                         Text(text = stringResource(id = Destino.Destino2.nombre))
                                     }
+                                    MapScreen()
                                 }
 
                                 composable(
@@ -208,7 +276,9 @@ class MainActivity : ComponentActivity() {
                                                         }
                                                     },
                                                     navigationIcon = {
-                                                        IconButton(onClick = { /* Handle navigation icon press */ }) {
+                                                        IconButton(onClick = {
+                                                        navController.navigate(DestinoJuego.Destinojuego.ruta)
+                                                    }) {
                                                             Icon(
                                                                 Icons.Filled.PlayArrow,
                                                                 contentDescription = "Navigation Icon"
@@ -268,14 +338,10 @@ class MainActivity : ComponentActivity() {
                                     }
                                 ) {
                                     Box(
-                                        modifier = Modifier.fillMaxSize(),
-                                        contentAlignment = Alignment.Center
+                                        modifier = Modifier.fillMaxSize()
+                                        .padding(start = 16.dp, top = 40.dp, bottom = 40.dp),contentAlignment = Alignment.Center
                                     ) {
-                                        LazyColumn {
-                                            items(recipes) { recipe ->
-                                                RecipeListItem(recipe = recipe)
-                                            }
-                                        }
+                                        RecetasSetasListScreen()
                                     }
                                 }
 
@@ -313,7 +379,22 @@ class MainActivity : ComponentActivity() {
                                         SetasListScreen()
                                     }
                                 }
-                            }
+                            composable(
+                                route = DestinoJuego.Destinojuego.ruta,
+                                enterTransition = {
+                                    slideIntoContainer(AnimatedContentTransitionScope.SlideDirection.Right)
+                                },
+                                exitTransition = {
+                                    slideOutOfContainer(AnimatedContentTransitionScope.SlideDirection.Left)
+                                }
+                            ) {
+                                Box(
+                                    modifier = Modifier.fillMaxSize(),
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    QuizScreen(questions = questions)
+                                }
+                            }}
                         }
 
                     }
@@ -325,16 +406,39 @@ class MainActivity : ComponentActivity() {
     }
 
     private fun requestPermissions() {
-        requestCameraPermissionIfMissing() { granted ->
-            if (granted) {
-                Toast.makeText(this, "Todos los permisos aceptados!", Toast.LENGTH_SHORT).show()
-            } else {
-                Toast.makeText(
-                    this,
-                    "No se han aceptado todos los permisos!",
-                    Toast.LENGTH_SHORT
-                ).show()
+        requestCameraPermissionIfMissing { cameraGranted ->
+            requestLocationPermissionsIfMissing { locationGranted ->
+                if (cameraGranted && locationGranted) {
+                    Toast.makeText(this, "Todos los permisos aceptados!", Toast.LENGTH_SHORT).show()
+                } else {
+                    Toast.makeText(
+                        this,
+                        "No se han aceptado todos los permisos!",
+                        Toast.LENGTH_SHORT
+                    ).show()
+                }
             }
+        }
+    }
+
+    private fun requestLocationPermissionsIfMissing(onResult: ((Boolean) -> Unit)) {
+        if (ContextCompat.checkSelfPermission(
+                this,
+                Manifest.permission.ACCESS_FINE_LOCATION
+            ) == PackageManager.PERMISSION_GRANTED &&
+            ContextCompat.checkSelfPermission(
+                this,
+                Manifest.permission.ACCESS_COARSE_LOCATION
+            ) == PackageManager.PERMISSION_GRANTED
+        ) {
+            onResult(true)
+        } else {
+            registerForActivityResult(ActivityResultContracts.RequestMultiplePermissions()) { permissions ->
+                val granted = permissions.entries.all {
+                    it.value == true
+                }
+                onResult(granted)
+            }.launch(arrayOf(Manifest.permission.ACCESS_FINE_LOCATION, Manifest.permission.ACCESS_COARSE_LOCATION))
         }
     }
 

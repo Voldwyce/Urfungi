@@ -3,6 +3,7 @@ package com.example.urfungi
 import android.Manifest
 import android.app.Activity
 import android.content.ContentValues
+import android.content.ContentValues.TAG
 import kotlinx.coroutines.launch
 import android.content.Context
 import android.content.pm.PackageManager
@@ -51,6 +52,7 @@ import android.location.Location
 import android.location.LocationListener
 import android.location.LocationManager
 import android.net.Uri
+import android.util.Log
 import androidx.activity.ComponentActivity
 import androidx.activity.OnBackPressedCallback
 import androidx.activity.OnBackPressedDispatcher
@@ -69,10 +71,13 @@ import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat.getSystemService
 import androidx.core.net.toFile
 import androidx.lifecycle.lifecycleScope
+import androidx.navigation.compose.rememberNavController
 import coil.ImageLoader
 import coil.compose.rememberImagePainter
 import coil.request.ImageRequest
 import com.google.common.util.concurrent.ListenableFuture
+import com.google.firebase.Firebase
+import com.google.firebase.firestore.firestore
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -91,18 +96,6 @@ fun SearchScreen() {
         override fun onStatusChanged(provider: String?, status: Int, extras: Bundle?) {}
         override fun onProviderEnabled(provider: String) {}
         override fun onProviderDisabled(provider: String) {}
-    }
-
-    LaunchedEffect(Unit) {
-        val hasLocationPermission = ActivityCompat.checkSelfPermission(context, Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED &&
-                ActivityCompat.checkSelfPermission(context, Manifest.permission.ACCESS_COARSE_LOCATION) == PackageManager.PERMISSION_GRANTED
-
-        if (!hasLocationPermission) {
-            // Solicitar permisos de ubicación aquí
-            ActivityCompat.requestPermissions(context as Activity, arrayOf(Manifest.permission.ACCESS_FINE_LOCATION, Manifest.permission.ACCESS_COARSE_LOCATION), 0)
-        } else {
-            locationManager?.requestLocationUpdates(LocationManager.GPS_PROVIDER, 0L, 0f, locationListener)
-        }
     }
 
     Box(
@@ -130,46 +123,54 @@ fun MushroomForm(
     var cameraInitialized by remember { mutableStateOf(false) }
     var capturedImageUri by remember { mutableStateOf<Uri?>(null) }
     var locationString by remember { mutableStateOf("Ubicación no disponible") }
+    val mushroomNames = getMushroomNames()
 
-    var showDialog by remember { mutableStateOf(false) }
-    val hasUnsavedChanges = title.isNotEmpty() || description.isNotEmpty() || mushroomType.isNotEmpty() || photoFile != null
+
+    var showDialoge by remember { mutableStateOf(false) }
 
     val lifecycleOwner = LocalLifecycleOwner.current
-    val onBackPressedDispatcherOwner = LocalOnBackPressedDispatcherOwner.current
+
+    val dispatcher = LocalOnBackPressedDispatcherOwner.current?.onBackPressedDispatcher
 
     val backCallback = remember {
         object : OnBackPressedCallback(true) {
             override fun handleOnBackPressed() {
-                if (hasUnsavedChanges) {
-                    showDialog = true
-                } else {
+                if (title.isBlank() && description.isBlank() && mushroomType.isBlank() && capturedImageUri == null) {
+                    // Si todos los campos están vacíos, ejecuta la acción de retroceso directamente
                     this.isEnabled = false
-                    onBackPressedDispatcherOwner?.onBackPressedDispatcher?.onBackPressed()
+                    dispatcher?.onBackPressed()
+                } else {
+                    // Si no, muestra el diálogo
+                    showDialoge = true
                 }
             }
         }
     }
 
-    if (showDialog) {
+    dispatcher?.addCallback(lifecycleOwner, backCallback)
+
+    if (showDialoge) {
         AlertDialog(
-            onDismissRequest = { showDialog = false },
+            onDismissRequest = { showDialoge = false },
             title = { Text("Advertencia") },
             text = { Text("Tienes cambios no guardados. Si sales ahora, perderás estos cambios.") },
             confirmButton = {
                 Button(onClick = {
-                    showDialog = false
-                    onNavigateAway()
+                    showDialoge = false
+                    backCallback.isEnabled = false // Deshabilita el callback
+                    dispatcher?.onBackPressed() // Funciona como el botón de retroceso
                 }) {
                     Text("Salir de todos modos")
                 }
             },
             dismissButton = {
-                Button(onClick = { showDialog = false }) {
+                Button(onClick = { showDialoge = false }) {
                     Text("Cancelar")
                 }
             }
         )
     }
+
     if (cameraInitialized) {
         Box(modifier = Modifier.fillMaxSize()) {
             AndroidView({ previewView }, modifier = Modifier.fillMaxSize()) { view ->
@@ -243,7 +244,7 @@ fun MushroomForm(
                                         Toast.LENGTH_SHORT
                                     ).show()
                                     cameraInitialized =
-                                        false // Cerrar la cámara después de tomar la foto
+                                        false
 
                                     // Guardar la imagen en la galería
                                     (context as ComponentActivity).lifecycleScope.launch {
@@ -292,7 +293,7 @@ fun MushroomForm(
             capturedImageUri?.let { uri ->
                 Image(painter = rememberImagePainter(data = uri), contentDescription = "Captured Image", modifier = Modifier.height(200.dp))
             }
-            Spacer(modifier = Modifier.height(16.dp)) // Separación entre la foto y el título
+            Spacer(modifier = Modifier.height(16.dp))
             TextField(value = title,
                 onValueChange = { title = it },
                 label = { Text("Title") },
@@ -306,34 +307,32 @@ fun MushroomForm(
             )
             Spacer(modifier = Modifier.height(16.dp))
             // Lista de setas (prueba)
-            val mushroomTypes = listOf("Type 1", "Type 2", "Type 3")
             var showDialog by remember { mutableStateOf(false) }
-            var selectedTypeIndex by remember { mutableStateOf(0) }
 
             Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
                 Button(onClick = { showDialog = true },
                     modifier = Modifier
-                        .width(150.dp) // Define un ancho fijo
-                        .height(50.dp), // Define un alto fijo para hacer el botón cuadrado
+                        .width(150.dp)
+                        .height(50.dp),
                     colors = ButtonDefaults.buttonColors(
                         containerColor = Color.Black.copy(alpha = 0.5f), contentColor = Color.White
                     ),
-                    shape = RectangleShape // Hace que el botón sea cuadrado sin bordes redondeados
+                    shape = RectangleShape
                 ) {
                     Text(mushroomType.ifEmpty { "Tipo de seta" })
                 }
 
-                Spacer(modifier = Modifier.width(1.dp)) // Reduce aún más el espacio entre los botones
+                Spacer(modifier = Modifier.width(1.dp))
 
                 Button(onClick = {
                     cameraInitialized = true
                 }, modifier = Modifier
-                    .width(150.dp) // Define un ancho fijo
-                    .height(50.dp), // Define un alto fijo para hacer el botón cuadrado
+                    .width(150.dp)
+                    .height(50.dp),
                     colors = ButtonDefaults.buttonColors(
                         containerColor = Color.Black.copy(alpha = 0.5f), contentColor = Color.White
                     ),
-                    shape = RectangleShape // Hace que el botón sea cuadrado sin bordes redondeados
+                    shape = RectangleShape
                 ) {
                     Text("Camara")
                 }
@@ -341,16 +340,15 @@ fun MushroomForm(
 
             if (showDialog) {
                 AlertDialog(onDismissRequest = { showDialog = false },
-                    title = { Text(text = "Select Mushroom Type") },
+                    title = { Text(text = "Selecciona una seta") },
                     text = {
                         Column {
-                            mushroomTypes.forEachIndexed { index, type ->
+                            mushroomNames.forEachIndexed { index, name ->
                                 TextButton(onClick = {
-                                    selectedTypeIndex = index
-                                    mushroomType = type
+                                    mushroomType = name
                                     showDialog = false
                                 }) {
-                                    Text(text = type)
+                                    Text(text = name)
                                 }
                             }
                         }
@@ -359,16 +357,15 @@ fun MushroomForm(
             }
             Spacer(modifier = Modifier.height(16.dp))
 
-            TextField(value = locationString,
+          /*  TextField(value = locationString,
                 onValueChange = {},
                 label = { Text("Ubicación") },
                 modifier = Modifier.fillMaxWidth(),
                 enabled = false // Deshabilitar la edición de este campo
-            )
+            ) */
 
             Spacer(modifier = Modifier.height(16.dp))
             Button(onClick = {
-                // Por completar...
             }, modifier = Modifier.fillMaxWidth(),
                 colors = ButtonDefaults.buttonColors(
                     containerColor = Color.Black.copy(alpha = 0.5f), contentColor = Color.White
@@ -389,4 +386,23 @@ fun createPhotoFile(context: Context): File {
     )
 }
 
+private fun getMushroomNames(): List<String> {
+    val db = Firebase.firestore
+    val mushroomNames = mutableListOf<String>()
 
+    db.collection("setas")
+        .get()
+        .addOnSuccessListener { documents ->
+            for (document in documents) {
+                val name = document.getString("Nombre")
+                if (name != null) {
+                    mushroomNames.add(name)
+                }
+            }
+        }
+        .addOnFailureListener { exception ->
+            Log.w(TAG, "Error al obtener los documentos: ", exception)
+        }
+
+    return mushroomNames
+}
