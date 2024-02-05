@@ -56,4 +56,7 @@ enum class Destino(
         icono = Icons.Outlined.Person,
         iconoSeleccionado = Icons.Filled.Person
     )
+
+
+
 }
