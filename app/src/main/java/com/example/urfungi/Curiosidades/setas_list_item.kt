@@ -2,6 +2,8 @@ package com.example.urfungi.Curiosidades
 
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.gestures.Orientation
+import androidx.compose.foundation.gestures.scrollable
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -11,12 +13,15 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyRow
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Card
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextField
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -30,107 +35,42 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import coil.compose.rememberImagePainter
 import com.example.urfungi.R
+import com.example.urfungi.Setas
+import com.google.firebase.firestore.FirebaseFirestore
 import kotlin.math.min
-
-val setas = listOf(
-    Seta(
-        "TEEMO", R.drawable.teemo,
-        "Teemo no se inmuta ante los obstáculos más peligrosos y amenazadores mientras explora el mundo con un entusiasmo infinito y un espíritu lleno de alegría. Es un yordle con una moralidad inquebrantable que se enorgullece de seguir el código de los exploradores de Bandle, a veces con tanto ímpetu que no se percata de las consecuencias de sus acciones. Aunque algunos dicen que la existencia de los exploradores es cuestionable, algo es seguro: no hay que meterse con la convicción de Teemo.",
-        "El chikito",
-        "Grieta del Invocador"
-    ),
-    Seta(
-        "NISCALO ", R.drawable.niscalo,
-        "Lorem ipsum dolor sit amet, consectetur adipiscing elit. Donec sit amet eros cursus, viverra nibh in, tincidunt justo. Ut pretium a nibh eu feugiat. Quisque lorem ante, accumsan eu tincidunt eget, imperdiet eget felis. Quisque a orci gravida, pellentesque lorem at, consequat quam. Integer non est est. Vestibulum aliquam nulla et massa viverra, non maximus magna consectetur. Nunc non erat id sem condimentum lacinia. Suspendisse id dictum dui, vel hendrerit dolor. Mauris vitae tortor purus. Nulla sit amet ullamcorper risus.",
-        "Agaricus bisporus",
-        "Otoño"
-    ),
-    Seta(
-        "CHAMPIÑONES", R.drawable.champ,
-        "Lorem ipsum dolor sit amet, consectetur adipiscing elit. Donec sit amet eros cursus, viverra nibh in, tincidunt justo. Ut pretium a nibh eu feugiat. Quisque lorem ante, accumsan eu tincidunt eget, imperdiet eget felis. Quisque a orci gravida, pellentesque lorem at, consequat quam. Integer non est est. Vestibulum aliquam nulla et massa viverra, non maximus magna consectetur. Nunc non erat id sem condimentum lacinia. Suspendisse id dictum dui, vel hendrerit dolor. Mauris vitae tortor purus. Nulla sit amet ullamcorper risus.",
-        "Agaricus bisporus",
-        "Otoño"
-    ),
-    Seta(
-        "CHAMPIÑONES", R.drawable.champ,
-        "Lorem ipsum dolor sit amet, consectetur adipiscing elit. Donec sit amet eros cursus, viverra nibh in, tincidunt justo. Ut pretium a nibh eu feugiat. Quisque lorem ante, accumsan eu tincidunt eget, imperdiet eget felis. Quisque a orci gravida, pellentesque lorem at, consequat quam. Integer non est est. Vestibulum aliquam nulla et massa viverra, non maximus magna consectetur. Nunc non erat id sem condimentum lacinia. Suspendisse id dictum dui, vel hendrerit dolor. Mauris vitae tortor purus. Nulla sit amet ullamcorper risus.",
-        "Agaricus bisporus",
-        "Otoño"
-    ),
-    Seta(
-        "CHAMPIÑONES", R.drawable.champ,
-        "Lorem ipsum dolor sit amet, consectetur adipiscing elit. Donec sit amet eros cursus, viverra nibh in, tincidunt justo. Ut pretium a nibh eu feugiat. Quisque lorem ante, accumsan eu tincidunt eget, imperdiet eget felis. Quisque a orci gravida, pellentesque lorem at, consequat quam. Integer non est est. Vestibulum aliquam nulla et massa viverra, non maximus magna consectetur. Nunc non erat id sem condimentum lacinia. Suspendisse id dictum dui, vel hendrerit dolor. Mauris vitae tortor purus. Nulla sit amet ullamcorper risus.",
-        "Agaricus bisporus",
-        "Otoño"
-    ),
-    Seta(
-        "CHAMPIÑONES", R.drawable.champ,
-        "Lorem ipsum dolor sit amet, consectetur adipiscing elit. Donec sit amet eros cursus, viverra nibh in, tincidunt justo. Ut pretium a nibh eu feugiat. Quisque lorem ante, accumsan eu tincidunt eget, imperdiet eget felis. Quisque a orci gravida, pellentesque lorem at, consequat quam. Integer non est est. Vestibulum aliquam nulla et massa viverra, non maximus magna consectetur. Nunc non erat id sem condimentum lacinia. Suspendisse id dictum dui, vel hendrerit dolor. Mauris vitae tortor purus. Nulla sit amet ullamcorper risus.",
-        "Agaricus bisporus",
-        "Otoño"
-    ),
-    Seta(
-        "CHAMPIÑONES", R.drawable.champ,
-        "Lorem ipsum dolor sit amet, consectetur adipiscing elit. Donec sit amet eros cursus, viverra nibh in, tincidunt justo. Ut pretium a nibh eu feugiat. Quisque lorem ante, accumsan eu tincidunt eget, imperdiet eget felis. Quisque a orci gravida, pellentesque lorem at, consequat quam. Integer non est est. Vestibulum aliquam nulla et massa viverra, non maximus magna consectetur. Nunc non erat id sem condimentum lacinia. Suspendisse id dictum dui, vel hendrerit dolor. Mauris vitae tortor purus. Nulla sit amet ullamcorper risus.",
-        "Agaricus bisporus",
-        "Otoño"
-    ),
-    Seta(
-        "CHAMPIÑONES", R.drawable.champ,
-        "Lorem ipsum dolor sit amet, consectetur adipiscing elit. Donec sit amet eros cursus, viverra nibh in, tincidunt justo. Ut pretium a nibh eu feugiat. Quisque lorem ante, accumsan eu tincidunt eget, imperdiet eget felis. Quisque a orci gravida, pellentesque lorem at, consequat quam. Integer non est est. Vestibulum aliquam nulla et massa viverra, non maximus magna consectetur. Nunc non erat id sem condimentum lacinia. Suspendisse id dictum dui, vel hendrerit dolor. Mauris vitae tortor purus. Nulla sit amet ullamcorper risus.",
-        "Agaricus bisporus",
-        "Otoño"
-    ),
-    Seta(
-        "CHAMPIÑONES", R.drawable.champ,
-        "Lorem ipsum dolor sit amet, consectetur adipiscing elit. Donec sit amet eros cursus, viverra nibh in, tincidunt justo. Ut pretium a nibh eu feugiat. Quisque lorem ante, accumsan eu tincidunt eget, imperdiet eget felis. Quisque a orci gravida, pellentesque lorem at, consequat quam. Integer non est est. Vestibulum aliquam nulla et massa viverra, non maximus magna consectetur. Nunc non erat id sem condimentum lacinia. Suspendisse id dictum dui, vel hendrerit dolor. Mauris vitae tortor purus. Nulla sit amet ullamcorper risus.",
-        "Agaricus bisporus",
-        "Otoño"
-    ),
-    Seta(
-        "CHAMPIÑONES", R.drawable.champ,
-        "Lorem ipsum dolor sit amet, consectetur adipiscing elit. Donec sit amet eros cursus, viverra nibh in, tincidunt justo. Ut pretium a nibh eu feugiat. Quisque lorem ante, accumsan eu tincidunt eget, imperdiet eget felis. Quisque a orci gravida, pellentesque lorem at, consequat quam. Integer non est est. Vestibulum aliquam nulla et massa viverra, non maximus magna consectetur. Nunc non erat id sem condimentum lacinia. Suspendisse id dictum dui, vel hendrerit dolor. Mauris vitae tortor purus. Nulla sit amet ullamcorper risus.",
-        "Agaricus bisporus",
-        "Otoño"
-    ),
-    Seta(
-        "CHAMPIÑONES", R.drawable.champ,
-        "Lorem ipsum dolor sit amet, consectetur adipiscing elit. Donec sit amet eros cursus, viverra nibh in, tincidunt justo. Ut pretium a nibh eu feugiat. Quisque lorem ante, accumsan eu tincidunt eget, imperdiet eget felis. Quisque a orci gravida, pellentesque lorem at, consequat quam. Integer non est est. Vestibulum aliquam nulla et massa viverra, non maximus magna consectetur. Nunc non erat id sem condimentum lacinia. Suspendisse id dictum dui, vel hendrerit dolor. Mauris vitae tortor purus. Nulla sit amet ullamcorper risus.",
-        "Agaricus bisporus",
-        "Otoño"
-    ),
-    Seta(
-        "CHAMPIÑONES", R.drawable.champ,
-        "Lorem ipsum dolor sit amet, consectetur adipiscing elit. Donec sit amet eros cursus, viverra nibh in, tincidunt justo. Ut pretium a nibh eu feugiat. Quisque lorem ante, accumsan eu tincidunt eget, imperdiet eget felis. Quisque a orci gravida, pellentesque lorem at, consequat quam. Integer non est est. Vestibulum aliquam nulla et massa viverra, non maximus magna consectetur. Nunc non erat id sem condimentum lacinia. Suspendisse id dictum dui, vel hendrerit dolor. Mauris vitae tortor purus. Nulla sit amet ullamcorper risus.",
-        "Agaricus bisporus",
-        "Otoño"
-    ),
-    Seta(
-        "CHAMPIÑONES", R.drawable.champ,
-        "Lorem ipsum dolor sit amet, consectetur adipiscing elit. Donec sit amet eros cursus, viverra nibh in, tincidunt justo. Ut pretium a nibh eu feugiat. Quisque lorem ante, accumsan eu tincidunt eget, imperdiet eget felis. Quisque a orci gravida, pellentesque lorem at, consequat quam. Integer non est est. Vestibulum aliquam nulla et massa viverra, non maximus magna consectetur. Nunc non erat id sem condimentum lacinia. Suspendisse id dictum dui, vel hendrerit dolor. Mauris vitae tortor purus. Nulla sit amet ullamcorper risus.",
-        "Agaricus bisporus",
-        "Otoño"
-    ),
-    Seta(
-        "CHAMPIÑONES", R.drawable.champ,
-        "Lorem ipsum dolor sit amet, consectetur adipiscing elit. Donec sit amet eros cursus, viverra nibh in, tincidunt justo. Ut pretium a nibh eu feugiat. Quisque lorem ante, accumsan eu tincidunt eget, imperdiet eget felis. Quisque a orci gravida, pellentesque lorem at, consequat quam. Integer non est est. Vestibulum aliquam nulla et massa viverra, non maximus magna consectetur. Nunc non erat id sem condimentum lacinia. Suspendisse id dictum dui, vel hendrerit dolor. Mauris vitae tortor purus. Nulla sit amet ullamcorper risus.",
-        "Agaricus bisporus",
-        "Otoño"
-    ),
-
-    )
 
 @Composable
 fun SetasListScreen() {
+    // Estado para almacenar la consulta de búsqueda
     var searchQuery by remember { mutableStateOf(TextFieldValue()) }
-    val filteredSetas = filterSetas(setas, searchQuery.text)
+    // Estado para almacenar la lista de setas obtenida de Firebase
+    var setas by remember { mutableStateOf(emptyList<Setas>()) }
+
+    // Instancia de Firebase Firestore
+    val db = FirebaseFirestore.getInstance()
+
+    LaunchedEffect(Unit) {
+        // Obtención de datos de Firebase y actualización del estado
+        db.collection("setas")
+            .get()
+            .addOnSuccessListener { result ->
+                setas = result.documents.mapNotNull { document ->
+                    document.toObject(Setas::class.java)
+                }
+            }
+    }
+
+    // Filtrado de setas según la consulta de búsqueda
+    val filteredSetas = filteredSetas(setas, searchQuery.text)
 
     Column(
         modifier = Modifier
             .fillMaxSize()
             .padding(16.dp)
     ) {
+        // Título
         Text(
             text = "Curiosidades de las Setas",
             style = MaterialTheme.typography.bodyLarge,
@@ -139,14 +79,17 @@ fun SetasListScreen() {
                 .padding(start = 17.dp, bottom = 8.dp)
         )
 
+        // Barra de búsqueda de setas
         SetasSearchBar(searchQuery = searchQuery, onSearchQueryChange = { searchQuery = it })
 
+        // Contenido de la lista de setas
         SetasListContent(setas = filteredSetas)
     }
 }
 
 @Composable
 fun SetasSearchBar(searchQuery: TextFieldValue, onSearchQueryChange: (TextFieldValue) -> Unit) {
+    // Barra de búsqueda de setas
     Row(
         modifier = Modifier
             .fillMaxWidth()
@@ -170,10 +113,15 @@ fun SetasSearchBar(searchQuery: TextFieldValue, onSearchQueryChange: (TextFieldV
 }
 
 @Composable
-fun SetasListContent(setas: List<Seta>) {
-    LazyColumn(
+fun SetasListContent(setas: List<Setas>) {
+    // Estado para la posición de desplazamiento de la lista
+    val scrollState = rememberScrollState()
+
+    // Lista de setas en un LazyRow
+    LazyRow(
         modifier = Modifier
             .fillMaxSize()
+            .scrollable(scrollState, Orientation.Horizontal)
     ) {
         items(setas.size) { index ->
             SetasListItem(seta = setas[index])
@@ -182,21 +130,26 @@ fun SetasListContent(setas: List<Seta>) {
 }
 
 @Composable
-fun SetasListItem(seta: Seta) {
+fun SetasListItem(seta: Setas) {
+    // Estado para controlar si el elemento de la lista está expandido
     var isExpanded by remember { mutableStateOf(false) }
 
+    // Elemento de lista de setas
     Card(
         modifier = Modifier
             .fillMaxWidth()
             .padding(15.dp, 15.dp, 30.dp)
-            .clickable { isExpanded = !isExpanded }
+            .clickable { isExpanded = !isExpanded } // Hacer clic para expandir/reducir
     ) {
         Column(
             modifier = Modifier
                 .fillMaxWidth()
         ) {
+            // Cargar imagen desde Firebase Storage
+            val imageUrl = "gs://urfungui.appspot.com/" + seta.Imagen
+            val painter = rememberImagePainter(data = imageUrl)
             Image(
-                painter = painterResource(id = seta.imagenResId),
+                painter = painter,
                 contentDescription = null,
                 modifier = Modifier
                     .fillMaxWidth()
@@ -214,6 +167,7 @@ fun SetasListItem(seta: Seta) {
 
             Spacer(modifier = Modifier.height(8.dp))
 
+            // Contenido de la tarjeta de setas
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -222,9 +176,9 @@ fun SetasListItem(seta: Seta) {
             ) {
                 Column {
                     Spacer(modifier = Modifier.height(25.dp))
-                    Text(text = seta.nombre, fontWeight = FontWeight.Bold, color = Color.LightGray)
+                    Text(text = seta.Nombre, fontWeight = FontWeight.Bold, color = Color.LightGray)
                     if (!isExpanded) {
-                        Text(text = seta.descripcion.substring(0, min(14, seta.descripcion.length)))
+                        Text(text = seta.Descripcion.substring(0, min(14, seta.Descripcion.length)))
                     } else {
                         Spacer(modifier = Modifier.height(12.dp))
                         Text(
@@ -233,7 +187,7 @@ fun SetasListItem(seta: Seta) {
                             color = Color.Black
                         )
                         Text(
-                            text = seta.descripcion,
+                            text = seta.Descripcion,
                             textAlign = TextAlign.Justify,
                             fontWeight = FontWeight.SemiBold
                         )
@@ -243,10 +197,10 @@ fun SetasListItem(seta: Seta) {
                             fontWeight = FontWeight.Bold,
                             color = Color.Black
                         )
-                        Text(text = seta.nombrecientifico, fontWeight = FontWeight.SemiBold)
+                        Text(text = seta.NombreCientifico, fontWeight = FontWeight.SemiBold)
                         Spacer(modifier = Modifier.height(12.dp))
                         Text(text = "Estación", fontWeight = FontWeight.Bold, color = Color.Black)
-                        Text(text = seta.estacion, fontWeight = FontWeight.SemiBold)
+                        Text(text = seta.Habitat, fontWeight = FontWeight.SemiBold)
                     }
                 }
             }
@@ -254,13 +208,15 @@ fun SetasListItem(seta: Seta) {
     }
 }
 
-fun filterSetas(setas: List<Seta>, query: String): List<Seta> {
+// Función para filtrar la lista de setas según la consulta de búsqueda
+fun filteredSetas(setas: List<Setas>, query: String): List<Setas> {
     return setas.filter {
-        it.nombre.contains(query, ignoreCase = true) ||
-                it.descripcion.contains(query, ignoreCase = true) ||
-                it.nombrecientifico.contains(query, ignoreCase = true) ||
-                it.estacion.contains(query, ignoreCase = true)
+        it.Nombre.contains(query, ignoreCase = true) ||
+                it.Descripcion.contains(query, ignoreCase = true) ||
+                it.NombreCientifico.contains(query, ignoreCase = true) ||
+                it.Habitat.contains(query, ignoreCase = true)
     }
 }
+
 
 
