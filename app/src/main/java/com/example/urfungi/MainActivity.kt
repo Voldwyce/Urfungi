@@ -1,38 +1,24 @@
 package com.example.urfungi
 
 import MapScreen
+import android.Manifest
+import android.content.Context
 import android.content.pm.PackageManager
 import android.os.Bundle
-import android.Manifest
-import android.content.ContentValues.TAG
-import android.content.Context
-import android.content.Intent
-import android.net.Uri
-import android.os.Build
-import android.os.Environment
 import android.preference.PreferenceManager
-import android.provider.Settings
-import android.util.Log
 import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.result.contract.ActivityResultContracts
-import androidx.camera.core.CameraSelector
-import androidx.camera.core.Preview
-import androidx.camera.lifecycle.ProcessCameraProvider
-import androidx.camera.view.PreviewView
 import androidx.compose.animation.AnimatedContentTransitionScope
-import androidx.compose.foundation.Image
-import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.MailOutline
+import androidx.compose.material.icons.filled.PlayArrow
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -42,11 +28,15 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
+import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
+import androidx.core.content.ContextCompat
 import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
 import androidx.navigation.NavDestination.Companion.hierarchy
 import androidx.navigation.NavGraph.Companion.findStartDestination
@@ -54,43 +44,14 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
-import com.example.urfungi.ui.theme.AppTheme
-import androidx.compose.material.icons.filled.*
-import androidx.compose.material3.Button
-import androidx.compose.material3.Card
-import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.remember
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.platform.LocalContext
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
-import androidx.compose.ui.draw.clip
-import androidx.compose.ui.layout.ContentScale
-import androidx.compose.ui.res.painterResource
-import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.viewinterop.AndroidView
-import androidx.core.content.ContextCompat
-import androidx.lifecycle.LifecycleOwner
-import com.example.urfungi.Curiosidades.SetasListItem
-import androidx.compose.ui.unit.sp
 import com.example.urfungi.Curiosidades.SetasListScreen
-import com.example.urfungi.QuizJuego.Question
 import com.example.urfungi.QuizJuego.QuizScreen
 import com.example.urfungi.QuizJuego.questions
 import com.example.urfungi.Recetas.RecetasSetasListScreen
-import com.example.urfungi.Curiosidades.setas
-import com.example.urfungi.Recetas.recipes
-import com.google.firebase.Firebase
+import com.example.urfungi.ui.theme.AppTheme
 import com.google.firebase.auth.FirebaseAuth
-import com.google.firebase.database.FirebaseDatabase
-import com.google.firebase.firestore.firestore
-import com.google.gson.Gson
-import com.google.gson.reflect.TypeToken
 import org.osmdroid.config.Configuration
 import org.osmdroid.library.BuildConfig
-import org.w3c.dom.Text
 import java.io.IOException
 import java.util.concurrent.ExecutorService
 import java.util.concurrent.Executors
@@ -159,7 +120,6 @@ class MainActivity : ComponentActivity() {
         /*
         uploadJsonToFirebase()
         */
-
 
         val ctx = applicationContext
         Configuration.getInstance().load(ctx, PreferenceManager.getDefaultSharedPreferences(ctx))
@@ -277,8 +237,8 @@ class MainActivity : ComponentActivity() {
                                                     },
                                                     navigationIcon = {
                                                         IconButton(onClick = {
-                                                        navController.navigate(DestinoJuego.Destinojuego.ruta)
-                                                    }) {
+                                                            navController.navigate(DestinoJuego.Destinojuego.ruta)
+                                                        }) {
                                                             Icon(
                                                                 Icons.Filled.PlayArrow,
                                                                 contentDescription = "Navigation Icon"
@@ -312,6 +272,13 @@ class MainActivity : ComponentActivity() {
                                     }
                                 }
 
+                                composable("map") {
+                                    MapScreen()
+                                }
+                                composable("posts") {
+                                    Posts()
+                                }
+
                                 composable(
                                     route = Destino.Destino4.ruta,
                                     enterTransition = {
@@ -338,10 +305,12 @@ class MainActivity : ComponentActivity() {
                                     }
                                 ) {
                                     Box(
-                                        modifier = Modifier.fillMaxSize()
-                                        .padding(start = 16.dp, top = 40.dp, bottom = 40.dp),contentAlignment = Alignment.Center
+                                        modifier = Modifier
+                                            .fillMaxSize()
+                                            .padding(start = 16.dp, top = 40.dp, bottom = 40.dp),
+                                        contentAlignment = Alignment.Center
                                     ) {
-                                        RecetasSetasListScreen()
+                                        Posts()
                                     }
                                 }
 
@@ -379,22 +348,23 @@ class MainActivity : ComponentActivity() {
                                         SetasListScreen()
                                     }
                                 }
-                            composable(
-                                route = DestinoJuego.Destinojuego.ruta,
-                                enterTransition = {
-                                    slideIntoContainer(AnimatedContentTransitionScope.SlideDirection.Right)
-                                },
-                                exitTransition = {
-                                    slideOutOfContainer(AnimatedContentTransitionScope.SlideDirection.Left)
-                                }
-                            ) {
-                                Box(
-                                    modifier = Modifier.fillMaxSize(),
-                                    contentAlignment = Alignment.Center
+                                composable(
+                                    route = DestinoJuego.Destinojuego.ruta,
+                                    enterTransition = {
+                                        slideIntoContainer(AnimatedContentTransitionScope.SlideDirection.Right)
+                                    },
+                                    exitTransition = {
+                                        slideOutOfContainer(AnimatedContentTransitionScope.SlideDirection.Left)
+                                    }
                                 ) {
-                                    QuizScreen(questions = questions)
+                                    Box(
+                                        modifier = Modifier.fillMaxSize(),
+                                        contentAlignment = Alignment.Center
+                                    ) {
+                                        QuizScreen(questions = questions)
+                                    }
                                 }
-                            }}
+                            }
                         }
 
                     }
@@ -438,7 +408,12 @@ class MainActivity : ComponentActivity() {
                     it.value == true
                 }
                 onResult(granted)
-            }.launch(arrayOf(Manifest.permission.ACCESS_FINE_LOCATION, Manifest.permission.ACCESS_COARSE_LOCATION))
+            }.launch(
+                arrayOf(
+                    Manifest.permission.ACCESS_FINE_LOCATION,
+                    Manifest.permission.ACCESS_COARSE_LOCATION
+                )
+            )
         }
     }
 

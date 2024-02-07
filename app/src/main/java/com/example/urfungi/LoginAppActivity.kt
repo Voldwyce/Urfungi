@@ -1,5 +1,6 @@
 package com.example.urfungi
 
+import android.content.Context
 import android.content.Intent
 import android.os.Bundle
 import androidx.activity.ComponentActivity
@@ -7,6 +8,7 @@ import androidx.activity.compose.setContent
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
@@ -23,6 +25,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.KeyboardType
@@ -70,6 +73,7 @@ class LoginAppActivity : ComponentActivity() {
             }
         }
     }
+
     private fun navigateToMainActivity() {
         val intent = Intent(this, MainActivity::class.java)
         startActivity(intent)
@@ -86,6 +90,7 @@ fun LoginScreen(
     var email by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
     var errorMessage by remember { mutableStateOf<String?>(null) }
+    val context = LocalContext.current
 
     Box(
         modifier = Modifier
@@ -168,13 +173,15 @@ fun LoginScreen(
                                             val username = document.getString("username")
                                             val birthdate = document.getString("fechaNacimiento")
                                             val email = document.getString("email")
-                                            // Ahora puedes usar estos datos en tu aplicación
-                                        } else { }
+                                            saveUsername(context, username.toString())
+                                        } else {
+                                        }
                                     }
                                     .addOnFailureListener { e ->
                                     }
 
                                 onLoginSuccess()
+
                             } else {
                                 // Hubo un error en el inicio de sesión, mostrar mensaje de error
                                 errorMessage =
@@ -216,7 +223,9 @@ fun RegistrationScreen(
     var errorMessage by remember { mutableStateOf("") }
 
     Column(
-        modifier = Modifier.fillMaxSize().padding(16.dp),
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(16.dp),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
         Text(
@@ -229,28 +238,36 @@ fun RegistrationScreen(
             value = name,
             onValueChange = { name = it },
             label = { Text("Nombre") },
-            modifier = Modifier.fillMaxWidth().padding(bottom = 10.dp)
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(bottom = 10.dp)
         )
 
         OutlinedTextField(
             value = username,
             onValueChange = { username = it },
             label = { Text("Nombre de usuario") },
-            modifier = Modifier.fillMaxWidth().padding(bottom = 10.dp)
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(bottom = 10.dp)
         )
 
         OutlinedTextField(
             value = birthdate,
             onValueChange = { birthdate = it },
             label = { Text("Fecha de nacimiento") },
-            modifier = Modifier.fillMaxWidth().padding(bottom = 10.dp)
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(bottom = 10.dp)
         )
 
         OutlinedTextField(
             value = email,
             onValueChange = { email = it },
             label = { Text("Correo electrónico") },
-            modifier = Modifier.fillMaxWidth().padding(bottom = 10.dp),
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(bottom = 10.dp),
             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email)
         )
 
@@ -258,7 +275,9 @@ fun RegistrationScreen(
             value = password,
             onValueChange = { password = it },
             label = { Text("Contraseña") },
-            modifier = Modifier.fillMaxWidth().padding(bottom = 10.dp),
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(bottom = 10.dp),
             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password)
         )
 
@@ -302,7 +321,8 @@ fun RegistrationScreen(
                                     }
                                     .addOnFailureListener { e ->
                                         // Mostrar mensaje de error al guardar en Firestore
-                                        errorMessage = "Error al guardar datos en Firestore: ${e.message}"
+                                        errorMessage =
+                                            "Error al guardar datos en Firestore: ${e.message}"
                                     }
                             } else {
                                 // Mostrar mensaje de error al registrar en Firebase Auth
@@ -311,16 +331,29 @@ fun RegistrationScreen(
                         }
                 }
             },
-            modifier = Modifier.fillMaxWidth().padding(top = 8.dp)
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(top = 8.dp)
         ) {
             Text(stringResource(R.string.Registrar_boton))
         }
 
         Button(
             onClick = { navController.popBackStack() },
-            modifier = Modifier.fillMaxWidth().padding(top = 8.dp)
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(top = 8.dp)
         ) {
             Text(stringResource(R.string.Cancelar_boton))
         }
+    }
+}
+
+
+fun saveUsername(context: Context, username: String) {
+    val sharedPref = context.getSharedPreferences("MyApp", Context.MODE_PRIVATE)
+    with(sharedPref.edit()) {
+        putString("username", username)
+        apply()
     }
 }

@@ -1,10 +1,10 @@
 <resources>
     <string name="app_name">Compose</string>
 
-    <string name="destino1">Añadir Seta</string>
-    <string name="destino2">Mis Setas</string>
+    <string name="destino1">Nueva Seta</string>
+    <string name="destino2">Mapa</string>
     <string name="destino3">Home</string>
-    <string name="destino4">Recetas</string>
+    <string name="destino4">Posts</string>
     <string name="destino5">Curio</string>
     <string name="destinojuego">Juego</string>
 
@@ -19,4 +19,9 @@
     <string name="title_activity_register">RegisterActivity</string>
     <string name="Registrar_boton">Registrar</string>
     <string name="Cancelar_boton">Cancelar</string>
+    <string name="title_activity_mis_setas">MisSetas</string>
+    <string name="title_activity_mapa">Mapa</string>
+    <string name="title_activity_posts">Posts</string>
+    <string name="maps">Mapas</string>
+    <string name="posts">Setas</string>
 </resources>
