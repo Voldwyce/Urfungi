@@ -43,7 +43,7 @@ android {
         compose = true
     }
     composeOptions {
-        kotlinCompilerExtensionVersion = "1.5.1"
+        kotlinCompilerExtensionVersion = "2.0.0-beta01"
     }
     packaging {
         resources {
@@ -93,7 +93,6 @@ dependencies {
     androidTestImplementation(platform("androidx.compose:compose-bom:2023.08.00"))
     debugImplementation("androidx.compose.ui:ui-tooling")
     debugImplementation("androidx.compose.ui:ui-test-manifest")
-    implementation("io.coil-kt:coil-compose:1.4.0")
     implementation("androidx.camera:camera-core:1.3.1")
     implementation("androidx.camera:camera-lifecycle:1.3.1")
     implementation("androidx.camera:camera-view:1.3.1")
@@ -102,4 +101,8 @@ dependencies {
     implementation("androidx.activity:activity-ktx:1.8.2")
     implementation("org.osmdroid:osmdroid-android:6.1.10")
     implementation ("androidx.lifecycle:lifecycle-runtime-ktx:2.7.0")
+    implementation ("com.github.bumptech.glide:glide:4.12.0")
+    annotationProcessor ("com.github.bumptech.glide:compiler:4.12.0")
+    implementation("io.coil-kt:coil-compose:1.3.2")
+    implementation(platform("androidx.compose:compose-bom:2023.08.00"))
 }

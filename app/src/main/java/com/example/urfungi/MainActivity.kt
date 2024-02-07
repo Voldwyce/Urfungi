@@ -5,15 +5,26 @@ import android.Manifest
 import android.content.Context
 import android.content.pm.PackageManager
 import android.os.Bundle
+import android.Manifest
+import android.content.ContentValues.TAG
+import android.content.Context
 import android.preference.PreferenceManager
+import android.util.Log
 import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.AnimatedContentTransitionScope
+import androidx.compose.foundation.Image
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.MailOutline
@@ -41,73 +52,46 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
+import com.example.urfungi.ui.theme.AppTheme
+import androidx.compose.material.icons.filled.*
+import androidx.compose.material3.Card
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
+import androidx.compose.ui.graphics.Color
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.text.font.FontWeight
+import androidx.core.content.ContextCompat
+import androidx.compose.ui.unit.sp
 import com.example.urfungi.Curiosidades.SetasListScreen
+import com.example.urfungi.QuizJuego.QuizScreen
+import com.example.urfungi.QuizJuego.questions
 import com.example.urfungi.QuizJuego.QuizScreenFromFirebase
 import com.example.urfungi.Recetas.RecetasSetasListScreen
+import com.google.firebase.Firebase
 import com.example.urfungi.ui.theme.AppTheme
 import com.google.firebase.auth.FirebaseAuth
+import com.google.firebase.firestore.firestore
 import org.osmdroid.config.Configuration
 import org.osmdroid.library.BuildConfig
 import java.io.IOException
 import java.util.concurrent.ExecutorService
 import java.util.concurrent.Executors
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.ui.graphics.vector.ImageVector
+import com.google.firebase.database.DatabaseReference
+import com.google.firebase.database.database
+//import androidx.compose.material.rememberCoilPainter
 
 
 class MainActivity : ComponentActivity() {
 
     private lateinit var cameraExecutor: ExecutorService
 
-    /*
-    private fun uploadJsonToFirebase() {
-        val jsonString = getJsonDataFromAsset(this, "setas.json")
-        if (jsonString != null) {
-            val listType = object : TypeToken<List<Setas>>() {}.type
-            val setas: List<Setas> = Gson().fromJson(jsonString, listType)
-
-            val auth = FirebaseAuth.getInstance()
-            val currentUser = auth.currentUser
-
-            if (currentUser != null) {
-                val db = Firebase.firestore
-                setas.forEach { seta ->
-                    val setaData = hashMapOf(
-                        "id" to seta.id,
-                        "Nombre" to seta.Nombre,
-                        "NombreCientifico" to seta.NombreCientifico,
-                        "Familia" to seta.Familia,
-                        "Temporada" to seta.Temporada,
-                        "Imagen" to seta.Imagen,
-                        "Comestible" to seta.Comestible,
-                        "Toxicidad" to seta.Toxicidad,
-                        "Descripcion" to seta.Descripcion,
-                        "Habitat" to seta.Habitat,
-                        "Dificultad" to seta.Dificultad,
-                        "Curiosidades" to seta.Curiosidades
-                    )
-
-                    db.collection("setas")
-                        .document(seta.Nombre)
-                        .set(setaData)
-                        .addOnSuccessListener {
-                        }
-                        .addOnFailureListener { e ->
-                            Log.d("Firebase", "Error al guardar datos en Firestore: ${e.message}")
-                        }
-                }
-            } else {
-            }
-        }
-    }
-    */
-
-    private fun getJsonDataFromAsset(context: Context, fileName: String): String? {
-        return try {
-            context.assets.open(fileName).bufferedReader().use { it.readText() }
-        } catch (ioException: IOException) {
-            ioException.printStackTrace()
-            return null
-        }
-    }
+    val database: DatabaseReference = Firebase.database.reference
 
     @OptIn(ExperimentalMaterial3Api::class)
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -190,6 +174,18 @@ class MainActivity : ComponentActivity() {
                                 }
 
                                 composable(
+                                    route = "mensajes",
+                                    enterTransition = {
+                                        slideIntoContainer(AnimatedContentTransitionScope.SlideDirection.Right)
+                                    },
+                                    exitTransition = {
+                                        slideOutOfContainer(AnimatedContentTransitionScope.SlideDirection.Left)
+                                    }
+                                ) {
+                                    MensajesScreen()
+                                }
+
+                                composable(
                                     route = Destino.Destino2.ruta,
                                     enterTransition = {
                                         slideIntoContainer(AnimatedContentTransitionScope.SlideDirection.Right)
@@ -242,7 +238,10 @@ class MainActivity : ComponentActivity() {
                                                         }
                                                     },
                                                     actions = {
-                                                        IconButton(onClick = { /* Handle send message icon press */ }) {
+                                                        IconButton(onClick = {
+                                                            navController.navigate("mensajes")
+                                                            /* Handle send message icon press */
+                                                        }) {
                                                             Icon(
                                                                 Icons.Filled.MailOutline,
                                                                 contentDescription = "Send Message Icon"
@@ -428,4 +427,149 @@ class MainActivity : ComponentActivity() {
 
     }
 
+    @Composable
+    fun MensajesScreen() {
+        var usuario by remember { mutableStateOf<usuarios?>(null) }
+
+        LaunchedEffect(Unit) {
+            val currentUser = FirebaseAuth.getInstance().currentUser
+            if (currentUser != null) {
+                val userId = currentUser.uid
+                val db = Firebase.firestore
+                val userReference = db.collection("usuarios").document(userId)
+
+                userReference.get().addOnSuccessListener { documentSnapshot ->
+                    if (documentSnapshot.exists()) {
+                        // El documento existe, puedes obtener el objeto usuarios
+                        usuario = documentSnapshot.toObject(usuarios::class.java)
+                    } else {
+                        // El documento no existe
+                        Log.d(
+                            TAG,
+                            "No se encontró el documento en Firestore para el usuario con ID: $userId"
+                        )
+                    }
+                }.addOnFailureListener { e ->
+                    // Manejar errores aquí
+                    Log.e(TAG, "Error al obtener datos del usuario en Firestore: $e")
+                }
+            }
+        }
+
+        Box(
+            modifier = Modifier.fillMaxSize(),
+            contentAlignment = Alignment.TopStart
+        ) {
+            if (usuario != null) {
+
+                MensajesCard(usuario)
+            } else {
+                Text("El usuario es nulo")
+            }
+        }
+    }
+
+    @Composable
+    fun MensajesCard(usuario: usuarios?) {
+        Box(
+            modifier = Modifier.fillMaxSize(),
+            contentAlignment = Alignment.TopStart
+        ) {
+            if (usuario != null) {
+                // Rectángulo con bordes redondeados
+                Card(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(150.dp)
+                        .padding(25.dp),
+                    shape = RoundedCornerShape(16.dp),
+                ) {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .padding(16.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+
+                        val userFoto = usuario.foto
+                        val imageUrl = "gs://urfungui.appspot.com/usuarios/$userFoto"
+                     /*   val paint = rememberCoilPainter(imageUrl)
+
+                        Image(
+                            modifier = Modifier
+                                .size(80.dp)
+                                .clip(CircleShape)
+                                .background(MaterialTheme.colorScheme.primary),
+                            painter = paint,
+                            contentDescription = null,
+                        )*/
+
+                        Spacer(modifier = Modifier.width(16.dp))
+
+                        // Nombre del usuario
+                        Text(
+                            text = usuario.nombre ?: "Nombre del Usuario",
+                            fontSize = 22.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = Color.White
+                        )
+
+                        Spacer(modifier = Modifier.width(8.dp))
+                    }
+                }
+            }
+        }
+    }
+
+    /*
+    private fun uploadJsonToFirebase() {
+        val jsonString = getJsonDataFromAsset(this, "setas.json")
+        if (jsonString != null) {
+            val listType = object : TypeToken<List<Setas>>() {}.type
+            val setas: List<Setas> = Gson().fromJson(jsonString, listType)
+
+            val auth = FirebaseAuth.getInstance()
+            val currentUser = auth.currentUser
+
+            if (currentUser != null) {
+                val db = Firebase.firestore
+                setas.forEach { seta ->
+                    val setaData = hashMapOf(
+                        "id" to seta.id,
+                        "Nombre" to seta.Nombre,
+                        "NombreCientifico" to seta.NombreCientifico,
+                        "Familia" to seta.Familia,
+                        "Temporada" to seta.Temporada,
+                        "Imagen" to seta.Imagen,
+                        "Comestible" to seta.Comestible,
+                        "Toxicidad" to seta.Toxicidad,
+                        "Descripcion" to seta.Descripcion,
+                        "Habitat" to seta.Habitat,
+                        "Dificultad" to seta.Dificultad,
+                        "Curiosidades" to seta.Curiosidades
+                    )
+
+                    db.collection("setas")
+                        .document(seta.Nombre)
+                        .set(setaData)
+                        .addOnSuccessListener {
+                        }
+                        .addOnFailureListener { e ->
+                            Log.d("Firebase", "Error al guardar datos en Firestore: ${e.message}")
+                        }
+                }
+            } else {
+            }
+        }
+    }
+    */
+
+    private fun getJsonDataFromAsset(context: Context, fileName: String): String? {
+        return try {
+            context.assets.open(fileName).bufferedReader().use { it.readText() }
+        } catch (ioException: IOException) {
+            ioException.printStackTrace()
+            return null
+        }
+    }
 }
