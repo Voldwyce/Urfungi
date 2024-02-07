@@ -77,10 +77,9 @@ import com.example.urfungi.Curiosidades.SetasListItem
 import androidx.compose.ui.unit.sp
 import com.example.urfungi.Curiosidades.SetasListScreen
 import com.example.urfungi.QuizJuego.Question
-import com.example.urfungi.QuizJuego.QuizScreen
+import com.example.urfungi.QuizJuego.QuizScreenFromFirebase
 import com.example.urfungi.QuizJuego.questions
 import com.example.urfungi.Recetas.RecetasSetasListScreen
-import com.example.urfungi.Curiosidades.setas
 import com.example.urfungi.Recetas.recipes
 import com.google.firebase.Firebase
 import com.google.firebase.auth.FirebaseAuth
@@ -277,8 +276,8 @@ class MainActivity : ComponentActivity() {
                                                     },
                                                     navigationIcon = {
                                                         IconButton(onClick = {
-                                                        navController.navigate(DestinoJuego.Destinojuego.ruta)
-                                                    }) {
+                                                            navController.navigate(DestinoJuego.Destinojuego.ruta)
+                                                        }) {
                                                             Icon(
                                                                 Icons.Filled.PlayArrow,
                                                                 contentDescription = "Navigation Icon"
@@ -312,6 +311,14 @@ class MainActivity : ComponentActivity() {
                                     }
                                 }
 
+                                composable("setas_list_item") {
+                                    SetasListScreen()
+                                }
+
+                                composable("recetas_list_item") {
+                                    RecetasSetasListScreen()
+                                }
+
                                 composable(
                                     route = Destino.Destino4.ruta,
                                     enterTransition = {
@@ -338,8 +345,10 @@ class MainActivity : ComponentActivity() {
                                     }
                                 ) {
                                     Box(
-                                        modifier = Modifier.fillMaxSize()
-                                        .padding(start = 16.dp, top = 40.dp, bottom = 40.dp),contentAlignment = Alignment.Center
+                                        modifier = Modifier
+                                            .fillMaxSize()
+                                            .padding(start = 16.dp, top = 40.dp, bottom = 40.dp),
+                                        contentAlignment = Alignment.Center
                                     ) {
                                         RecetasSetasListScreen()
                                     }
@@ -376,25 +385,26 @@ class MainActivity : ComponentActivity() {
                                             .padding(start = 16.dp, top = 40.dp, bottom = 40.dp),
                                         contentAlignment = Alignment.Center
                                     ) {
-                                        SetasListScreen()
+                                        Repositorio(navController)
                                     }
                                 }
-                            composable(
-                                route = DestinoJuego.Destinojuego.ruta,
-                                enterTransition = {
-                                    slideIntoContainer(AnimatedContentTransitionScope.SlideDirection.Right)
-                                },
-                                exitTransition = {
-                                    slideOutOfContainer(AnimatedContentTransitionScope.SlideDirection.Left)
-                                }
-                            ) {
-                                Box(
-                                    modifier = Modifier.fillMaxSize(),
-                                    contentAlignment = Alignment.Center
+                                composable(
+                                    route = DestinoJuego.Destinojuego.ruta,
+                                    enterTransition = {
+                                        slideIntoContainer(AnimatedContentTransitionScope.SlideDirection.Right)
+                                    },
+                                    exitTransition = {
+                                        slideOutOfContainer(AnimatedContentTransitionScope.SlideDirection.Left)
+                                    }
                                 ) {
-                                    QuizScreen(questions = questions)
+                                    Box(
+                                        modifier = Modifier.fillMaxSize(),
+                                        contentAlignment = Alignment.Center
+                                    ) {
+                                        QuizScreenFromFirebase()
+                                    }
                                 }
-                            }}
+                            }
                         }
 
                     }
@@ -438,7 +448,12 @@ class MainActivity : ComponentActivity() {
                     it.value == true
                 }
                 onResult(granted)
-            }.launch(arrayOf(Manifest.permission.ACCESS_FINE_LOCATION, Manifest.permission.ACCESS_COARSE_LOCATION))
+            }.launch(
+                arrayOf(
+                    Manifest.permission.ACCESS_FINE_LOCATION,
+                    Manifest.permission.ACCESS_COARSE_LOCATION
+                )
+            )
         }
     }
 
