@@ -1,11 +1,11 @@
 <resources>
     <string name="app_name">Compose</string>
 
-    <string name="destino1">Nueva Seta</string>
+    <string name="destino1">Añadir</string>
     <string name="destino2">Mapa</string>
     <string name="destino3">Home</string>
     <string name="destino4">Posts</string>
-    <string name="destino5">Curio</string>
+    <string name="destino5">Repo</string>
     <string name="destinojuego">Juego</string>
 
     <string name="title_activity_login">LoginActivity</string>

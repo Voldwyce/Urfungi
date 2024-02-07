@@ -1,12 +1,12 @@
 package com.example.urfungi
 
 data class Post(
-    val Usuario: String = "",
+    val usuario: String = "",
     val idSeta : String = "",
-    val Titulo: String = "",
-    val Descripcion: String = "",
-    val Cordenadas: String = "",
-    val Fecha: String = "",
-    val Foto: String = "",
-    val Likes: List<String> = emptyList()
+    val titulo: String = "",
+    val descripcion: String = "",
+    val cordenadas: String = "",
+    val fecha: String = "",
+    val foto: String = "",
+    val likes: List<String> = emptyList()
 )

@@ -415,13 +415,13 @@ fun MushroomForm(
                                     // Utilizar el objeto Post existente
                                     val userId = FirebaseAuth.getInstance().currentUser?.uid
                                     val post = Post(
-                                        Usuario = userId ?: "NoFoundUser",
+                                        usuario = userId ?: "NoFoundUser",
                                         idSeta = mushroomType,
-                                        Titulo = title,
-                                        Descripcion = description,
-                                        Cordenadas = locationString,
-                                        Fecha = SimpleDateFormat("dd/MM/yyyy HH:mm:ss", Locale.getDefault()).format(Date()),
-                                        Foto = photoUrl.toString()
+                                        titulo = title,
+                                        descripcion = description,
+                                        cordenadas = locationString,
+                                        fecha = SimpleDateFormat("dd/MM/yyyy HH:mm:ss", Locale.getDefault()).format(Date()),
+                                        foto = photoUrl.toString()
                                     )
 
                                     // Subir el objeto Post a Firestore

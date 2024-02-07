@@ -67,10 +67,6 @@ fun MapScreen() {
             coroutineScope.launch {
                 val location = fusedLocationClient.awaitLastLocation(context)
                 val geoPoint = GeoPoint(location.latitude, location.longitude)
-                if (mapView.overlays[0] is Marker) {
-                    val marker = mapView.overlays[0] as Marker
-                    marker.position = geoPoint
-                }
                 mapView.controller.setCenter(geoPoint)
             }
         } else {
@@ -88,14 +84,9 @@ fun MapScreen() {
             ) == PackageManager.PERMISSION_GRANTED
         ) {
             coroutineScope.launch {
-
-                // Crea un marcador para el punto específico
-                val pointMarker = Marker(mapView).apply {
-                    position = GeoPoint(41.5632, 2.0089) // Coordenadas de Terrassa, Barcelona, España
-                    setAnchor(Marker.ANCHOR_CENTER, Marker.ANCHOR_BOTTOM)
-                    title = "Point Marker"
-                }
-                mapView.overlays.add(pointMarker)
+                val location = fusedLocationClient.awaitLastLocation(context)
+                val geoPoint = GeoPoint(location.latitude, location.longitude)
+                mapView.controller.setCenter(geoPoint)
             }
         } else {
             requestPermissionLauncher.launch(Manifest.permission.ACCESS_FINE_LOCATION)
