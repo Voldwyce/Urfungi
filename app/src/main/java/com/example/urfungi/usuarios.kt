@@ -1,13 +1,12 @@
 package com.example.urfungi
 
 data class usuarios(
-    val id: String = "",
-    val nombre: String? = null,
-    val email: String? = null,
-    val username: String? = null,
-    val foto: String? = null,
-    val fechaNacimiento: String? = null,
+    val amigos: List<String>? = null,
+    val nombre: String? = "",
+    val email: String? = "",
+    val username: String? = "",
+    val foto: String? = "",
+    val fechaNacimiento: String? = "",
     val totalAciertos: Int = 0,
     val totalFallos: Int = 0
 )
-

@@ -42,29 +42,34 @@
         override fun onCreate(savedInstanceState: Bundle?) {
             super.onCreate(savedInstanceState)
 
+            val currentUser = FirebaseAuth.getInstance().currentUser
+            if (currentUser != null) {
+                // Si el usuario ya ha iniciado sesión, navegar directamente al MainActivity
+                navigateToMainActivity()
+            } else {
 
+                setContent {
 
-            setContent {
+                    AppTheme {
+                        val navController = rememberNavController()
 
-                AppTheme {
-                    val navController = rememberNavController()
+                        NavHost(navController = navController, startDestination = "login") {
+                            composable("login") {
+                                LoginScreen(
+                                    navController = navController,
+                                    onLoginSuccess = {
+                                        // Navegar al MainActivity con el destino inicial (Destino1)
+                                        navigateToMainActivity()
 
-                    NavHost(navController = navController, startDestination = "login") {
-                        composable("login") {
-                            LoginScreen(
-                                navController = navController,
-                                onLoginSuccess = {
-                                    // Navegar al MainActivity con el destino inicial (Destino1)
-                                    navigateToMainActivity()
-
-                                },
-                                onRegisterClick = {
-                                    navController.navigate("register")
-                                }
-                            )
-                        }
-                        composable("register") {
-                            RegistrationScreen(navController = navController)
+                                    },
+                                    onRegisterClick = {
+                                        navController.navigate("register")
+                                    }
+                                )
+                            }
+                            composable("register") {
+                                RegistrationScreen(navController = navController)
+                            }
                         }
                     }
                 }
@@ -291,7 +296,8 @@
                                                 "email" to email,
                                                 "totalFallos" to 0,
                                                 "totalAciertos" to 0,
-                                                "foto" to ""
+                                                "foto" to "smurf.jpg",
+                                                "amigos" to emptyList<String>()
                                             )
 
                                             // Agregar los datos a Firestore
