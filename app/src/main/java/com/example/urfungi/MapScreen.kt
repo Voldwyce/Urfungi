@@ -1,6 +1,7 @@
 import android.Manifest
 import android.content.Context
 import android.content.pm.PackageManager
+import android.util.Log
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.runtime.*
@@ -9,11 +10,15 @@ import androidx.compose.ui.platform.LocalLifecycleOwner
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
+import com.example.urfungi.Post
 import com.google.android.gms.location.FusedLocationProviderClient
 import com.google.android.gms.location.LocationServices
+import com.google.firebase.auth.FirebaseAuth
+import com.google.firebase.firestore.FirebaseFirestore
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.suspendCancellableCoroutine
+import kotlinx.coroutines.tasks.await
 import org.osmdroid.tileprovider.tilesource.TileSourceFactory
 import org.osmdroid.util.GeoPoint
 import org.osmdroid.views.MapView
@@ -58,8 +63,15 @@ fun MapScreen() {
     val coroutineScope = rememberCoroutineScope()
     val lifecycle = LocalLifecycleOwner.current.lifecycle
 
+    var posts by remember { mutableStateOf(emptyList<Post>()) }
+
+    LaunchedEffect(Unit) {
+        posts = loadPosts()
+    }
+
     val mapView = rememberMapViewWithUserLocation(context, coroutineScope)
 
+    DrawMarkers(mapView, posts)
     val requestPermissionLauncher = rememberLauncherForActivityResult(
         ActivityResultContracts.RequestPermission()
     ) { isGranted: Boolean ->
@@ -104,12 +116,60 @@ fun rememberMapViewWithUserLocation(
         MapView(context).apply {
             setTileSource(TileSourceFactory.MAPNIK)
 
-            // Crea un nuevo MyLocationNewOverlay y lo añade al mapa
+            // Create a new MyLocationNewOverlay and add it to the map
             val myLocationOverlay = MyLocationNewOverlay(GpsMyLocationProvider(context), this)
             myLocationOverlay.enableMyLocation()
             overlays.add(myLocationOverlay)
 
+            setMultiTouchControls(true)
             controller.setZoom(9.0)
+        }
+    }
+}
+
+suspend fun loadPosts(): List<Post> {
+    val db = FirebaseFirestore.getInstance()
+    val userId = FirebaseAuth.getInstance().currentUser?.uid
+    val result = db.collection("posts")
+        .whereEqualTo("usuario", userId)
+        .get()
+        .await()
+
+    val posts = result.documents.mapNotNull { document ->
+        val post = document.toObject(Post::class.java)
+        post?.id = document.id // Asignar el ID del documento a la propiedad 'id' del post
+        post
+    }
+
+    // Log the posts
+    Log.d("MapScreen", "Posts: $posts")
+
+    return posts
+}
+
+@Composable
+fun DrawMarkers(mapView: MapView, posts: List<Post>) {
+    posts.forEach { post ->
+        try {
+            val cordenadas = post.cordenadas.split(",")
+            val latitud = cordenadas[0].trim().toDouble()
+            val longitud = cordenadas[1].trim().toDouble()
+
+            // Log the latitude and longitude values
+            Log.d("MapScreen", "Latitud: $latitud, Longitud: $longitud")
+
+            val geoPoint = GeoPoint(latitud, longitud)
+            val marker = Marker(mapView).apply {
+                position = geoPoint
+                title = post.titulo
+                subDescription = "${post.fecha}\n${post.descripcion}" // Aquí se muestra la fecha y la descripción
+            }
+            mapView.overlays.add(marker)
+
+            Log.d("MapScreen", "Marker added: ${marker.position.latitude}, ${marker.position.longitude}, ${marker.title}")
+        } catch (e: Exception) {
+            // Log the exception
+            Log.e("MapScreen", "Error creating marker for post: ${post.id}", e)
         }
     }
 }

@@ -1,6 +1,7 @@
 package com.example.urfungi
 
 data class Post(
+    var id: String = "",
     val usuario: String = "",
     val idSeta : String = "",
     val titulo: String = "",

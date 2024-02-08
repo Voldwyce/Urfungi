@@ -293,7 +293,7 @@ class MainActivity : ComponentActivity() {
                                             .padding(start = 16.dp, top = 40.dp, bottom = 40.dp),
                                         contentAlignment = Alignment.Center
                                     ) {
-                                        PostsScreen()
+                                        UserPostsScreen()
                                     }
                                 }
 
