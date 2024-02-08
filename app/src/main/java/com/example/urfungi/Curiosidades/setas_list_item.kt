@@ -14,8 +14,11 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -35,6 +38,8 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import coil.compose.AsyncImage
 import coil.compose.rememberImagePainter
 import com.example.urfungi.R
 import com.example.urfungi.Setas
@@ -43,26 +48,21 @@ import kotlin.math.min
 
 @Composable
 fun SetasListScreen() {
-    // Estado para almacenar la consulta de búsqueda
     var searchQuery by remember { mutableStateOf(TextFieldValue()) }
-    // Estado para almacenar la lista de setas obtenida de Firebase
     var setas by remember { mutableStateOf(emptyList<Setas>()) }
 
-    // Instancia de Firebase Firestore
     val db = FirebaseFirestore.getInstance()
 
     LaunchedEffect(Unit) {
-        // Obtención de datos de Firebase y actualización del estado
         db.collection("setas")
             .get()
             .addOnSuccessListener { result ->
                 setas = result.documents.mapNotNull { document ->
                     document.toObject(Setas::class.java)
-                }
+                }.sortedByDescending { it.Toxicidad } // Ordenar las setas por toxicidad
             }
     }
 
-    // Filtrado de setas según la consulta de búsqueda
     val filteredSetas = filteredSetas(setas, searchQuery.text)
 
     Column(
@@ -70,7 +70,6 @@ fun SetasListScreen() {
             .fillMaxSize()
             .padding(16.dp)
     ) {
-        // Título
         Text(
             text = "Curiosidades de las Setas",
             style = MaterialTheme.typography.bodyLarge,
@@ -79,10 +78,8 @@ fun SetasListScreen() {
                 .padding(start = 17.dp, bottom = 8.dp)
         )
 
-        // Barra de búsqueda de setas
         SetasSearchBar(searchQuery = searchQuery, onSearchQueryChange = { searchQuery = it })
 
-        // Contenido de la lista de setas
         SetasListContent(setas = filteredSetas)
     }
 }
@@ -114,42 +111,44 @@ fun SetasSearchBar(searchQuery: TextFieldValue, onSearchQueryChange: (TextFieldV
 
 @Composable
 fun SetasListContent(setas: List<Setas>) {
-    // Estado para la posición de desplazamiento de la lista
-    val scrollState = rememberScrollState()
+    val groupedSetas = setas.groupBy { it.Toxicidad } // Agrupar las setas por su toxicidad
 
-    // Lista de setas en un LazyRow
-    LazyRow(
+    LazyColumn(
         modifier = Modifier
             .fillMaxSize()
-            .scrollable(scrollState, Orientation.Horizontal)
     ) {
-        items(setas.size) { index ->
-            SetasListItem(seta = setas[index])
+        groupedSetas.forEach { (toxicidad, setasGroup) ->
+            item {
+                Text(
+                    text = "Toxicidad: $toxicidad", // Mostrar el nivel de toxicidad como título
+                    fontSize = 20.sp,
+                    fontWeight = FontWeight.Bold,
+                    modifier = Modifier.padding(13.dp)
+                )
+            }
+            items(setasGroup) { seta ->
+                SetasListItem(seta = seta)
+            }
         }
     }
 }
 
 @Composable
 fun SetasListItem(seta: Setas) {
-    // Estado para controlar si el elemento de la lista está expandido
-    var isExpanded by remember { mutableStateOf(false) }
+    var showDialog by remember { mutableStateOf(false) }
 
-    // Elemento de lista de setas
     Card(
         modifier = Modifier
             .fillMaxWidth()
             .padding(15.dp, 15.dp, 30.dp)
-            .clickable { isExpanded = !isExpanded } // Hacer clic para expandir/reducir
+            .clickable { showDialog = true } // Mostrar el diálogo al hacer clic
     ) {
         Column(
             modifier = Modifier
                 .fillMaxWidth()
         ) {
-            // Cargar imagen desde Firebase Storage
-            val imageUrl = "gs://urfungui.appspot.com/" + seta.Imagen
-            val painter = rememberImagePainter(data = imageUrl)
-            Image(
-                painter = painter,
+            AsyncImage(
+                model = seta.Imagen,
                 contentDescription = null,
                 modifier = Modifier
                     .fillMaxWidth()
@@ -165,9 +164,8 @@ fun SetasListItem(seta: Setas) {
                     )
             )
 
-            Spacer(modifier = Modifier.height(8.dp))
+            Spacer(modifier = Modifier.height(16.dp)) // Agregar espacio entre la imagen y el texto
 
-            // Contenido de la tarjeta de setas
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -175,38 +173,64 @@ fun SetasListItem(seta: Setas) {
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Column {
-                    Spacer(modifier = Modifier.height(25.dp))
+                    Spacer(modifier = Modifier.height(29.dp))
                     Text(text = seta.Nombre, fontWeight = FontWeight.Bold, color = Color.LightGray)
-                    if (!isExpanded) {
-                        Text(text = seta.Descripcion.substring(0, min(14, seta.Descripcion.length)))
-                    } else {
-                        Spacer(modifier = Modifier.height(12.dp))
-                        Text(
-                            text = "Descripción",
-                            fontWeight = FontWeight.Bold,
-                            color = Color.Black
-                        )
-                        Text(
-                            text = seta.Descripcion,
-                            textAlign = TextAlign.Justify,
-                            fontWeight = FontWeight.SemiBold
-                        )
-                        Spacer(modifier = Modifier.height(12.dp))
-                        Text(
-                            text = "Nombre cientifico",
-                            fontWeight = FontWeight.Bold,
-                            color = Color.Black
-                        )
-                        Text(text = seta.NombreCientifico, fontWeight = FontWeight.SemiBold)
-                        Spacer(modifier = Modifier.height(12.dp))
-                        Text(text = "Estación", fontWeight = FontWeight.Bold, color = Color.Black)
-                        Text(text = seta.Habitat, fontWeight = FontWeight.SemiBold)
-                    }
                 }
             }
         }
     }
+
+    // Mostrar el diálogo al hacer clic en la tarjeta
+    if (showDialog) {
+        AlertDialog(
+            onDismissRequest = { showDialog = false },
+            title = { Text(text = seta.Nombre) },
+            text = {
+                Column {
+                    // Mostrar la imagen
+                    AsyncImage(
+                        model = seta.Imagen,
+                        contentDescription = null,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(150.dp)
+                            .aspectRatio(1f)
+                            .clip(
+                                RoundedCornerShape(
+                                    topStart = 12.dp,
+                                    topEnd = 12.dp,
+                                    bottomEnd = 0.dp,
+                                    bottomStart = 0.dp
+                                )
+                            )
+                    )
+
+                    Spacer(modifier = Modifier.height(27.dp)) // Agregar espacio entre la imagen y el texto
+
+                    Text(text = seta.Descripcion)
+
+                    Spacer(modifier = Modifier.height(25.dp)) // Agregar espacio entre la imagen y el texto
+
+                    Text(text = "Nombre cientifico: ", fontWeight = FontWeight.Bold) // Nombre científico en negrita
+                    Text(text = seta.NombreCientifico)
+
+                    Spacer(modifier = Modifier.height(25.dp)) // Agregar espacio entre la imagen y el texto
+
+                    Text(text = "Estación: ", fontWeight = FontWeight.Bold) // Hábitat en negrita
+                    Text(text = seta.Habitat)
+                }
+            },
+            confirmButton = {
+                Button(
+                    onClick = { showDialog = false }
+                ) {
+                    Text("Cerrar")
+                }
+            }
+        )
+    }
 }
+
 
 // Función para filtrar la lista de setas según la consulta de búsqueda
 fun filteredSetas(setas: List<Setas>, query: String): List<Setas> {
