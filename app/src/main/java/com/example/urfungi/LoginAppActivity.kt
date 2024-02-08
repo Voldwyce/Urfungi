@@ -296,8 +296,10 @@
                                                 "email" to email,
                                                 "totalFallos" to 0,
                                                 "totalAciertos" to 0,
-                                                "foto" to "smurf.jpg",
-                                                "amigos" to emptyList<String>()
+                                                "foto" to "https://firebasestorage.googleapis.com/v0/b/urfungui.appspot.com/o/usuarios%2Fsmurf.jpg?alt=media&token=a865ccdc-9b7b-48b9-b816-830b2540a8a4",
+                                                "amigos" to emptyList<String>(),
+                                                "solicitudAmistad" to emptyList<String>()
+
                                             )
 
                                             // Agregar los datos a Firestore

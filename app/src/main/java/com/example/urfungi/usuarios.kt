@@ -1,6 +1,7 @@
 package com.example.urfungi
 
 data class usuarios(
+    val solicitudAmistad: List<String>? = null,
     val amigos: List<String>? = null,
     val nombre: String? = "",
     val email: String? = "",
