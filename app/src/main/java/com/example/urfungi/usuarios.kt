@@ -9,5 +9,6 @@ data class usuarios(
     val foto: String? = "",
     val fechaNacimiento: String? = "",
     val totalAciertos: Int = 0,
-    val totalFallos: Int = 0
+    val totalFallos: Int = 0,
+    val record: Int = 0
 )

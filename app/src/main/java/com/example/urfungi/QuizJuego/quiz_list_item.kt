@@ -1,5 +1,6 @@
 package com.example.urfungi.QuizJuego
 
+import android.util.Log
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -29,6 +30,7 @@ import androidx.compose.ui.unit.sp
 import coil.compose.AsyncImage
 import com.example.urfungi.R
 import com.example.urfungi.Setas
+import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FirebaseFirestore
 import kotlinx.coroutines.tasks.await
 import kotlin.random.Random
@@ -40,8 +42,10 @@ fun QuizScreenFromFirebase() {
     var currentQuestionIndex by remember { mutableStateOf(0) }
     var isGameOver by remember { mutableStateOf(false) }
     var currentSetaName by remember { mutableStateOf("") }
+    var userRecord by remember { mutableStateOf(0) }
 
     val firestore = FirebaseFirestore.getInstance()
+    val auth = FirebaseAuth.getInstance()
 
     LaunchedEffect(Unit) {
         try {
@@ -53,7 +57,11 @@ fun QuizScreenFromFirebase() {
                     list.add(seta)
                 }
             }
-            setas = list.shuffled() // Se mezclan las setas obtenidas aleatoriamente
+            setas = list.shuffled()
+
+            // Obtener el objeto de usuario
+            val userSnapshot = firestore.collection("usuarios").document(auth.currentUser?.uid ?: "").get().await()
+            userRecord = userSnapshot.get("record") as Int
         } catch (e: Exception) {
             e.printStackTrace()
             setas = emptyList()
@@ -61,8 +69,14 @@ fun QuizScreenFromFirebase() {
     }
 
     if (isGameOver) {
+        val score = currentQuestionIndex + 1
+        firestore.collection("usuarios").document(auth.currentUser?.uid ?: "")
+            .update("record", score)
+            .addOnSuccessListener { Log.d("QuizScreenFromFirebase", "DocumentSnapshot successfully updated!") }
+            .addOnFailureListener { e -> Log.w("QuizScreenFromFirebase", "Error updating document", e) }
+
         GameOverScreen(
-            score = currentQuestionIndex + 1,
+            score = score,
             onRestartClicked = {
                 currentQuestionIndex = 0
                 isGameOver = false
@@ -79,7 +93,7 @@ fun QuizScreenFromFirebase() {
                     .padding(16.dp)
             ) {
                 Text(
-                    text = "Quiz Game",
+                    text = "Record: $userRecord", // Mostrar el record
                     fontSize = 18.sp,
                     modifier = Modifier.padding(10.dp)
                 )
@@ -103,14 +117,7 @@ fun QuizScreenFromFirebase() {
                             contentScale = ContentScale.Crop
                         )
 
-                        Text(
-                            text = currentSeta.Nombre,
-                            fontSize = 20.sp,
-                            fontWeight = FontWeight.Bold,
-                            modifier = Modifier.padding(horizontal = 16.dp)
-                        )
-
-                        val opcionesRespuesta = setas.shuffled().take(6).toMutableList()
+                        val opcionesRespuesta = setas.shuffled().take(4).toMutableList()
                         if (!opcionesRespuesta.contains(currentSeta)) {
                             opcionesRespuesta[Random.nextInt(4)] = currentSeta
                         }

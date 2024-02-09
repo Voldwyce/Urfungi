@@ -180,7 +180,6 @@ fun SetasListItem(seta: Setas) {
         }
     }
 
-    // Mostrar el diálogo al hacer clic en la tarjeta
     if (showDialog) {
         AlertDialog(
             onDismissRequest = { showDialog = false },
@@ -218,6 +217,26 @@ fun SetasListItem(seta: Setas) {
 
                     Text(text = "Estación: ", fontWeight = FontWeight.Bold) // Hábitat en negrita
                     Text(text = seta.Habitat)
+
+                    Spacer(modifier = Modifier.height(25.dp)) // Agregar espacio entre la imagen y el texto
+
+                    Text(text = "Toxicidad: ", fontWeight = FontWeight.Bold) // Toxicidad en negrita
+                    Text(text = seta.Toxicidad.toString())
+
+                    Spacer(modifier = Modifier.height(25.dp)) // Agregar espacio entre la imagen y el texto
+
+                    Text(text = "Dificultad: ", fontWeight = FontWeight.Bold) // Dificultad en negrita
+                    Text(text = seta.Dificultad.toString())
+
+                    Spacer(modifier = Modifier.height(25.dp)) // Agregar espacio entre la imagen y el texto
+
+                    Text(text = "Temporada: ", fontWeight = FontWeight.Bold) // Temporada en negrita
+                    Text(text = seta.Temporada)
+
+                    Spacer(modifier = Modifier.height(25.dp)) // Agregar espacio entre la imagen y el texto
+
+                    Text(text = "Familia: ", fontWeight = FontWeight.Bold) // Familia en negrita
+                    Text(text = seta.Familia)
                 }
             },
             confirmButton = {
