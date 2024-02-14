@@ -80,7 +80,6 @@ import com.example.urfungi.QuizJuego.Question
 import com.example.urfungi.QuizJuego.QuizScreenFromFirebase
 import com.example.urfungi.QuizJuego.questions
 import com.example.urfungi.Recetas.RecetasSetasListScreen
-import com.example.urfungi.Recetas.recipes
 import com.google.firebase.Firebase
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.database.FirebaseDatabase
