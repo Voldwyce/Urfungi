@@ -62,7 +62,7 @@ fun QuizScreenFromFirebase() {
 
     if (isGameOver) {
         GameOverScreen(
-            score = currentQuestionIndex + 1,
+            score = currentQuestionIndex,
             onRestartClicked = {
                 currentQuestionIndex = 0
                 isGameOver = false
@@ -110,7 +110,7 @@ fun QuizScreenFromFirebase() {
                             modifier = Modifier.padding(horizontal = 16.dp)
                         )
 
-                        val opcionesRespuesta = setas.shuffled().take(6).toMutableList()
+                        val opcionesRespuesta = setas.shuffled().take(4).toMutableList()
                         if (!opcionesRespuesta.contains(currentSeta)) {
                             opcionesRespuesta[Random.nextInt(4)] = currentSeta
                         }

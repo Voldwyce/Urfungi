@@ -80,6 +80,7 @@ import com.example.urfungi.QuizJuego.Question
 import com.example.urfungi.QuizJuego.QuizScreenFromFirebase
 import com.example.urfungi.QuizJuego.questions
 import com.example.urfungi.Recetas.RecetasSetasListScreen
+import com.example.urfungi.Restaurantes.RestaurantesSetasListScreen
 import com.google.firebase.Firebase
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.database.FirebaseDatabase
@@ -316,6 +317,10 @@ class MainActivity : ComponentActivity() {
 
                                 composable("recetas_list_item") {
                                     RecetasSetasListScreen()
+                                }
+
+                                composable("restaurantes_list_item") {
+                                    RestaurantesSetasListScreen()
                                 }
 
                                 composable(

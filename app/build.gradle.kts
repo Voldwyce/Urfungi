@@ -92,4 +92,10 @@ dependencies {
     implementation("androidx.activity:activity-ktx:1.8.2")
     implementation("org.osmdroid:osmdroid-android:6.1.10")
     implementation ("androidx.lifecycle:lifecycle-runtime-ktx:2.7.0")
+    // Core HTTP client features
+    implementation("io.ktor:ktor-client-core:1.6.4")
+
+    // JSON serialization/deserialization support
+    implementation("io.ktor:ktor-client-json:1.6.4")
+    implementation("io.ktor:ktor-client-json-jvm:1.6.4")
 }

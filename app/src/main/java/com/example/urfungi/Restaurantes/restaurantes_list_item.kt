@@ -1,9 +1,8 @@
-package com.example.urfungi.Recetas
+package com.example.urfungi.Restaurantes
 
-import androidx.compose.foundation.Image
-import androidx.compose.foundation.background
+import android.content.ContentValues.TAG
+import android.util.Log
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -12,12 +11,9 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Face
+import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -32,39 +28,33 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.layout.ContentScale
-import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import coil.compose.AsyncImage
-import com.example.urfungi.Curiosidades.Seta
-import com.example.urfungi.R
+import com.example.urfungi.Recetas.Recetas
 import com.google.firebase.firestore.FirebaseFirestore
-import kotlin.math.min
-
 
 @Composable
-fun RecetasSetasListScreen() {
-    val recetas = remember { mutableStateOf(listOf<Recetas>()) }
+fun RestaurantesSetasListScreen() {
+    val restaurantes = remember { mutableStateOf(listOf<Restaurantes>()) }
     var searchQuery by remember { mutableStateOf(TextFieldValue()) }
-    val filteredRecetas = filterSetasRecetas(recetas.value, searchQuery.text)
+    val filteredRestaurantes = filterRestaurantes(restaurantes.value, searchQuery.text)
 
     val db = FirebaseFirestore.getInstance()
-    val ref = db.collection("recetas")
+    val ref = db.collection("restaurantes")
 
     LaunchedEffect(Unit) {
         ref.get().addOnSuccessListener { querySnapshot ->
-            val tempRecetas = mutableListOf<Recetas>()
+            val tempRestaurantes = mutableListOf<Restaurantes>()
             for (document in querySnapshot.documents) {
-                val receta = document.toObject(Recetas::class.java)
-                if (receta != null) {
-                    tempRecetas.add(receta)
+                val restaurantes = document.toObject(Restaurantes::class.java)
+                if (restaurantes != null) {
+                    tempRestaurantes.add(restaurantes)
                 }
             }
-            recetas.value = tempRecetas
+            restaurantes.value = tempRestaurantes
         }
     }
 
@@ -74,21 +64,24 @@ fun RecetasSetasListScreen() {
             .padding(16.dp)
     ) {
         Text(
-            text = "Recetas de Setas",
+            text = "Restaurantes de Setas",
             style = MaterialTheme.typography.titleMedium,
             fontWeight = FontWeight.Bold,
             modifier = Modifier
                 .padding(start = 17.dp, bottom = 8.dp)
         )
 
-        SetasSearchBar(searchQuery = searchQuery, onSearchQueryChange = { searchQuery = it })
+        RestaurantesSearchBar(searchQuery = searchQuery, onSearchQueryChange = { searchQuery = it })
 
-        RecetasSetasListContent(recetas = filteredRecetas)
+        RestaurantesSetasListContent(restaurantes = filteredRestaurantes)
     }
 }
 
 @Composable
-fun SetasSearchBar(searchQuery: TextFieldValue, onSearchQueryChange: (TextFieldValue) -> Unit) {
+fun RestaurantesSearchBar(
+    searchQuery: TextFieldValue,
+    onSearchQueryChange: (TextFieldValue) -> Unit
+) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
@@ -103,7 +96,7 @@ fun SetasSearchBar(searchQuery: TextFieldValue, onSearchQueryChange: (TextFieldV
         TextField(
             value = searchQuery,
             onValueChange = onSearchQueryChange,
-            placeholder = { Text(text = "Buscar recetas setas") },
+            placeholder = { Text(text = "Buscar restaurantes setas") },
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(8.dp)
@@ -112,19 +105,19 @@ fun SetasSearchBar(searchQuery: TextFieldValue, onSearchQueryChange: (TextFieldV
 }
 
 @Composable
-fun RecetasSetasListContent(recetas: List<Recetas>) {
+fun RestaurantesSetasListContent(restaurantes: List<Restaurantes>) {
     LazyColumn(
         modifier = Modifier
             .fillMaxSize()
     ) {
-        items(recetas.size) { index ->
-            RecetasSetasListItem(receta = recetas[index])
+        items(restaurantes.size) { index ->
+            RestaurantesSetasListItem(restaurantes = restaurantes[index])
         }
     }
 }
 
 @Composable
-fun RecetasSetasListItem(receta: Recetas) {
+fun RestaurantesSetasListItem(restaurantes: Restaurantes) {
     var isExpanded by remember { mutableStateOf(false) }
 
     Card(
@@ -138,7 +131,7 @@ fun RecetasSetasListItem(receta: Recetas) {
                 .fillMaxWidth()
         ) {
             AsyncImage(
-                model = receta.Imagen,
+                model = restaurantes.Imagen,
                 contentDescription = null,
                 modifier = Modifier
                     .fillMaxWidth()
@@ -165,7 +158,7 @@ fun RecetasSetasListItem(receta: Recetas) {
                 Column {
                     Spacer(modifier = Modifier.height(25.dp))
                     Text(
-                        text = receta.NombreReceta,
+                        text = restaurantes.NombreRestaurante,
                         fontWeight = FontWeight.Bold,
                         color = Color.LightGray
                     )
@@ -177,36 +170,18 @@ fun RecetasSetasListItem(receta: Recetas) {
                             color = Color.Black
                         )
                         Text(
-                            text = receta.Descripcion,
+                            text = restaurantes.Descripcion,
                             textAlign = TextAlign.Justify,
                             fontWeight = FontWeight.SemiBold
                         )
                         Spacer(modifier = Modifier.height(12.dp))
-
-                        Text(
-                            text = "Ingredientes",
-                            fontWeight = FontWeight.Bold,
-                            color = Color.Black
-                        )
-                        Text(text = receta.Ingredientes, fontWeight = FontWeight.SemiBold)
-
-                        Spacer(modifier = Modifier.height(12.dp))
-
-                        Text(
-                            text = "Preparacion",
-                            fontWeight = FontWeight.Bold,
-                            color = Color.Black
-                        )
-                        Text(text = receta.Preparacion, fontWeight = FontWeight.SemiBold)
-
-                        Spacer(modifier = Modifier.height(12.dp))
-
-                        Text(
-                            text = "Tiempo preparacion",
-                            fontWeight = FontWeight.Bold,
-                            color = Color.Black
-                        )
-                        Text(text = receta.TiempoPreparacion, fontWeight = FontWeight.SemiBold)
+                        Button(
+                            onClick = {
+                            },
+                            modifier = Modifier.align(Alignment.End)
+                        ) {
+                            Text(text = "Ubicación")
+                        }
                     }
                 }
             }
@@ -214,11 +189,64 @@ fun RecetasSetasListItem(receta: Recetas) {
     }
 }
 
-fun filterSetasRecetas(recetas: List<Recetas>, query: String): List<Recetas> {
-    return recetas.filter {
-        it.NombreReceta.contains(query, ignoreCase = true) /*||
+fun filterRestaurantes(restaurantes: List<Restaurantes>, query: String): List<Restaurantes> {
+    return restaurantes.filter {
+        it.NombreRestaurante.contains(query, ignoreCase = true) /*||
                 it.Descripcion.contains(query, ignoreCase = true) ||
                 it.Ingredientes.contains(query, ignoreCase = true) ||
                 it.Preparacion.contains(query, ignoreCase = true) */
     }
 }
+
+/*fun agregarRestaurantesAleatorios() {
+    val db = FirebaseFirestore.getInstance()
+    val ref = db.collection("restaurantes")
+
+    val restaurantes = listOf(
+        mapOf(
+            "NombreRestaurante" to "Le Grand Café Rouge",
+            "Descripcion" to "Descripción del Restaurante A",
+            "latitude" to 41.4118938, // Latitud de una ubicación aleatoria
+            "longitude" to 2.2190616, // Longitud de una ubicación aleatoria
+            "Imagen" to "" // URL de la imagen del Restaurante A
+        ),
+        mapOf(
+            "NombreRestaurante" to "Restaurante A",
+            "Descripcion" to "Descripción del Restaurante A",
+            "latitude" to 40.7128, // Latitud de una ubicación aleatoria
+            "longitude" to -74.0060, // Longitud de una ubicación aleatoria
+            "Imagen" to "" // URL de la imagen del Restaurante A
+        ),
+        mapOf(
+            "NombreRestaurante" to "Restaurante A",
+            "Descripcion" to "Descripción del Restaurante A",
+            "latitude" to 40.7128, // Latitud de una ubicación aleatoria
+            "longitude" to -74.0060, // Longitud de una ubicación aleatoria
+            "Imagen" to "" // URL de la imagen del Restaurante A
+        ),
+        mapOf(
+            "NombreRestaurante" to "Restaurante A",
+            "Descripcion" to "Descripción del Restaurante A",
+            "latitude" to 40.7128, // Latitud de una ubicación aleatoria
+            "longitude" to -74.0060, // Longitud de una ubicación aleatoria
+            "Imagen" to "" // URL de la imagen del Restaurante A
+        ),
+        mapOf(
+            "NombreRestaurante" to "Restaurante A",
+            "Descripcion" to "Descripción del Restaurante A",
+            "latitude" to 40.7128, // Latitud de una ubicación aleatoria
+            "longitude" to -74.0060, // Longitud de una ubicación aleatoria
+            "Imagen" to "" // URL de la imagen del Restaurante A
+        ),
+    )
+
+    for (restaurante in restaurantes) {
+        ref.add(restaurante)
+            .addOnSuccessListener { documentReference ->
+                Log.d(TAG, "Restaurante agregado con ID: ${documentReference.id}")
+            }
+            .addOnFailureListener { e ->
+                Log.e(TAG, "Error al agregar restaurante", e)
+            }
+    }
+}*/
