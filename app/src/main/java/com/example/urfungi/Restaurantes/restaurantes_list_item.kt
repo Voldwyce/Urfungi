@@ -32,12 +32,14 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import androidx.navigation.NavController
 import coil.compose.AsyncImage
+import com.example.urfungi.Destino
 import com.example.urfungi.Recetas.Recetas
 import com.google.firebase.firestore.FirebaseFirestore
 
 @Composable
-fun RestaurantesSetasListScreen() {
+fun RestaurantesSetasListScreen(navController: NavController) {
     val restaurantes = remember { mutableStateOf(listOf<Restaurantes>()) }
     var searchQuery by remember { mutableStateOf(TextFieldValue()) }
     val filteredRestaurantes = filterRestaurantes(restaurantes.value, searchQuery.text)
@@ -73,7 +75,7 @@ fun RestaurantesSetasListScreen() {
 
         RestaurantesSearchBar(searchQuery = searchQuery, onSearchQueryChange = { searchQuery = it })
 
-        RestaurantesSetasListContent(restaurantes = filteredRestaurantes)
+        RestaurantesSetasListContent(restaurantes = filteredRestaurantes, navController)
     }
 }
 
@@ -105,19 +107,19 @@ fun RestaurantesSearchBar(
 }
 
 @Composable
-fun RestaurantesSetasListContent(restaurantes: List<Restaurantes>) {
+fun RestaurantesSetasListContent(restaurantes: List<Restaurantes>, navController: NavController) {
     LazyColumn(
         modifier = Modifier
             .fillMaxSize()
     ) {
         items(restaurantes.size) { index ->
-            RestaurantesSetasListItem(restaurantes = restaurantes[index])
+            RestaurantesSetasListItem(restaurantes = restaurantes[index], navController)
         }
     }
 }
 
 @Composable
-fun RestaurantesSetasListItem(restaurantes: Restaurantes) {
+fun RestaurantesSetasListItem(restaurantes: Restaurantes, navController: NavController) {
     var isExpanded by remember { mutableStateOf(false) }
 
     Card(
@@ -177,6 +179,8 @@ fun RestaurantesSetasListItem(restaurantes: Restaurantes) {
                         Spacer(modifier = Modifier.height(12.dp))
                         Button(
                             onClick = {
+                                /*navController.navigate("${Destino.Destino2.ruta}/${restaurantes.longitude}/${restaurantes.latitude}")*/
+                                navController.navigate(Destino.Destino2.ruta)
                             },
                             modifier = Modifier.align(Alignment.End)
                         ) {
@@ -191,10 +195,7 @@ fun RestaurantesSetasListItem(restaurantes: Restaurantes) {
 
 fun filterRestaurantes(restaurantes: List<Restaurantes>, query: String): List<Restaurantes> {
     return restaurantes.filter {
-        it.NombreRestaurante.contains(query, ignoreCase = true) /*||
-                it.Descripcion.contains(query, ignoreCase = true) ||
-                it.Ingredientes.contains(query, ignoreCase = true) ||
-                it.Preparacion.contains(query, ignoreCase = true) */
+        it.NombreRestaurante.contains(query, ignoreCase = true)
     }
 }
 

@@ -80,6 +80,7 @@ import com.example.urfungi.QuizJuego.Question
 import com.example.urfungi.QuizJuego.QuizScreenFromFirebase
 import com.example.urfungi.QuizJuego.questions
 import com.example.urfungi.Recetas.RecetasSetasListScreen
+import com.example.urfungi.Restaurantes.Restaurantes
 import com.example.urfungi.Restaurantes.RestaurantesSetasListScreen
 import com.google.firebase.Firebase
 import com.google.firebase.auth.FirebaseAuth
@@ -87,6 +88,7 @@ import com.google.firebase.database.FirebaseDatabase
 import com.google.firebase.firestore.firestore
 import com.google.gson.Gson
 import com.google.gson.reflect.TypeToken
+import kotlinx.coroutines.tasks.await
 import org.osmdroid.config.Configuration
 import org.osmdroid.library.BuildConfig
 import org.w3c.dom.Text
@@ -183,6 +185,7 @@ class MainActivity : ComponentActivity() {
                                 val navBackStackEntry by navController.currentBackStackEntryAsState()
                                 val destinoActual = navBackStackEntry?.destination
 
+
                                 Destino.entries.forEach { destino ->
                                     val destinoSeleccionado =
                                         destinoActual?.hierarchy?.any { it.route == destino.ruta } == true
@@ -247,7 +250,15 @@ class MainActivity : ComponentActivity() {
                                     ) {
                                         Text(text = stringResource(id = Destino.Destino2.nombre))
                                     }
-                                    MapScreen()
+                                    val ubicacionRestaurante =
+                                        Pair("2.19658605794489", "41.38866240056389")
+                                    val ubicacionesRestaurantes = listOf(
+                                        Pair("2.19658605794489", "41.38866240056389"),
+                                        Pair("2.0038505645996643", "41.570557053982185"),
+                                    )
+
+                                    MapScreen(ubicacionesRestaurantes)
+                                    /*MapScreen()*/
                                 }
 
                                 composable(
@@ -320,7 +331,7 @@ class MainActivity : ComponentActivity() {
                                 }
 
                                 composable("restaurantes_list_item") {
-                                    RestaurantesSetasListScreen()
+                                    RestaurantesSetasListScreen(navController)
                                 }
 
                                 composable(
@@ -476,3 +487,30 @@ class MainActivity : ComponentActivity() {
     }
 
 }
+
+// Función para obtener la ubicación del restaurante desde Firebase
+fun obtenerUbicacionesRestaurantes(onSuccess: (List<Pair<String, String>>) -> Unit, onError: (String) -> Unit) {
+    try {
+        val firestore = Firebase.firestore
+        val restaurantesRef = firestore.collection("restaurantes")
+        restaurantesRef.get()
+            .addOnSuccessListener { snapshot ->
+                val ubicaciones = mutableListOf<Pair<String, String>>()
+                for (document in snapshot.documents) {
+                    val longitud = document.getString("longitud")
+                    val latitud = document.getString("latitud")
+                    if (longitud != null && latitud != null) {
+                        ubicaciones.add(Pair(longitud, latitud))
+                    }
+                }
+                onSuccess(ubicaciones)
+            }
+            .addOnFailureListener { exception ->
+                onError("Error al obtener las ubicaciones de los restaurantes: ${exception.message}")
+            }
+    } catch (e: Exception) {
+        onError("Error al obtener las ubicaciones de los restaurantes: ${e.message}")
+    }
+}
+
+
