@@ -88,6 +88,7 @@ class LoginAppActivity : ComponentActivity() {
 
             googleSignInLauncher =
                 registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
+                    Log.d("GoogleSignIn", "ActivityResultLauncher activado")
                     if (result.resultCode == Activity.RESULT_OK) {
                         val task = GoogleSignIn.getSignedInAccountFromIntent(result.data)
                         try {
