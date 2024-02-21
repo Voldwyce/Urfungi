@@ -43,10 +43,8 @@ import com.google.firebase.Firebase
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.auth.auth
 import com.google.firebase.firestore.firestore
-import androidx.compose.material3.DatePicker
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
-import androidx.compose.material3.LocalTextStyle
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.material.icons.*
@@ -54,7 +52,6 @@ import androidx.compose.material.icons.filled.AccountCircle
 import androidx.compose.material.icons.filled.Visibility
 import androidx.compose.material.icons.filled.VisibilityOff
 import androidx.compose.material3.OutlinedButton
-import androidx.core.app.ActivityCompat.startActivityForResult
 import com.google.android.gms.auth.api.signin.GoogleSignIn
 import com.google.android.gms.auth.api.signin.GoogleSignInClient
 import com.google.android.gms.auth.api.signin.GoogleSignInOptions
@@ -200,14 +197,6 @@ fun LoginScreen(
                     .padding(bottom = 16.dp)
             )
 
-            // Título
-            Text(
-                text = "UrFungi",
-                style = MaterialTheme.typography.headlineLarge,
-                color = MaterialTheme.colorScheme.onBackground,
-                modifier = Modifier.padding(bottom = 16.dp)
-            )
-
             // Campos de texto
             OutlinedTextField(
                 value = email,
@@ -291,6 +280,22 @@ fun LoginScreen(
             }
             Spacer(modifier = Modifier.padding(4.dp))
             // Botón de registro
+            Button(
+                onClick = {
+                    if (email.isNotEmpty()) {
+                        errorMessage = "Se ha enviado un correo electrónico de restablecimiento de contraseña a $email"
+                        sendPasswordResetEmail(email, errorMessage)
+                    } else {
+                        errorMessage = "Por favor, ingresa tu correo electrónico."
+                    }
+                },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(top = 5.dp)
+            ) {
+                Text("Olvidé mi contraseña")
+            }
+            Spacer(modifier = Modifier.padding(4.dp))
             Button(
                 onClick = onRegisterClick,
                 modifier = Modifier
@@ -520,5 +525,15 @@ private fun checkAvailability(username: String, email: String, callback: (Boolea
                     // Llamar al callback con el resultado combinado
                     callback(isUsernameAvailable && isEmailAvailable)
                 }
+        }
+}
+
+private fun sendPasswordResetEmail(email: String, errorMessage: String?) {
+    val auth = FirebaseAuth.getInstance()
+    auth.sendPasswordResetEmail(email)
+        .addOnCompleteListener { task ->
+            if (task.isSuccessful) {
+            } else {
+            }
         }
 }
