@@ -23,6 +23,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextField
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -38,35 +39,34 @@ import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import coil.compose.AsyncImage
 import com.example.urfungi.Curiosidades.Seta
 import com.example.urfungi.R
+import com.google.firebase.firestore.FirebaseFirestore
 import kotlin.math.min
 
-val recipes = listOf(
-    Recipe(
-        "SETAS A LA PLANCHA",
-        R.drawable.teemo,
-        "Preparación:",
-        "1. Lavar las setas y cortarlas en trozos."
-    ),
-    Recipe(
-        "SETAS EN SALSA",
-        R.drawable.teemo,
-        "Preparación:",
-        "1. Sofreir la cebolla y el ajo picados."
-    ),
-    Recipe(
-        "SETAS AL AJILLO",
-        R.drawable.teemo,
-        "Preparación:",
-        "1. Sofreir las setas y los ajos picados."
-    ),
-)
 
 @Composable
 fun RecetasSetasListScreen() {
+    val recetas = remember { mutableStateOf(listOf<Recetas>()) }
     var searchQuery by remember { mutableStateOf(TextFieldValue()) }
-    val filteredRecetasSetas = filterSetasRecetas(recipes, searchQuery.text)
+    val filteredRecetas = filterSetasRecetas(recetas.value, searchQuery.text)
+
+    val db = FirebaseFirestore.getInstance()
+    val ref = db.collection("recetas")
+
+    LaunchedEffect(Unit) {
+        ref.get().addOnSuccessListener { querySnapshot ->
+            val tempRecetas = mutableListOf<Recetas>()
+            for (document in querySnapshot.documents) {
+                val receta = document.toObject(Recetas::class.java)
+                if (receta != null) {
+                    tempRecetas.add(receta)
+                }
+            }
+            recetas.value = tempRecetas
+        }
+    }
 
     Column(
         modifier = Modifier
@@ -74,7 +74,7 @@ fun RecetasSetasListScreen() {
             .padding(16.dp)
     ) {
         Text(
-            text = "Recetas de las Setas",
+            text = "Recetas de Setas",
             style = MaterialTheme.typography.titleMedium,
             fontWeight = FontWeight.Bold,
             modifier = Modifier
@@ -83,7 +83,7 @@ fun RecetasSetasListScreen() {
 
         SetasSearchBar(searchQuery = searchQuery, onSearchQueryChange = { searchQuery = it })
 
-        RecetasSetasListContent(recipes = filteredRecetasSetas)
+        RecetasSetasListContent(recetas = filteredRecetas)
     }
 }
 
@@ -102,7 +102,7 @@ fun SetasSearchBar(searchQuery: TextFieldValue, onSearchQueryChange: (TextFieldV
     ) {
         TextField(
             value = searchQuery,
-            onValueChange = { onSearchQueryChange(it) },
+            onValueChange = onSearchQueryChange,
             placeholder = { Text(text = "Buscar recetas setas") },
             modifier = Modifier
                 .fillMaxWidth()
@@ -112,19 +112,19 @@ fun SetasSearchBar(searchQuery: TextFieldValue, onSearchQueryChange: (TextFieldV
 }
 
 @Composable
-fun RecetasSetasListContent(recipes: List<Recipe>) {
+fun RecetasSetasListContent(recetas: List<Recetas>) {
     LazyColumn(
         modifier = Modifier
             .fillMaxSize()
     ) {
-        items(recipes.size) { index ->
-            RecetasSetasListItem(recipes = recipes[index])
+        items(recetas.size) { index ->
+            RecetasSetasListItem(receta = recetas[index])
         }
     }
 }
 
 @Composable
-fun RecetasSetasListItem(recipes: Recipe) {
+fun RecetasSetasListItem(receta: Recetas) {
     var isExpanded by remember { mutableStateOf(false) }
 
     Card(
@@ -137,8 +137,8 @@ fun RecetasSetasListItem(recipes: Recipe) {
             modifier = Modifier
                 .fillMaxWidth()
         ) {
-            Image(
-                painter = painterResource(id = recipes.imagenResId),
+            AsyncImage(
+                model = receta.Imagen,
                 contentDescription = null,
                 modifier = Modifier
                     .fillMaxWidth()
@@ -165,18 +165,11 @@ fun RecetasSetasListItem(recipes: Recipe) {
                 Column {
                     Spacer(modifier = Modifier.height(25.dp))
                     Text(
-                        text = recipes.nombre,
+                        text = receta.NombreReceta,
                         fontWeight = FontWeight.Bold,
                         color = Color.LightGray
                     )
-                    if (!isExpanded) {
-                        Text(
-                            text = recipes.preparacion.substring(
-                                0,
-                                min(14, recipes.preparacion.length)
-                            )
-                        )
-                    } else {
+                    if (isExpanded) {
                         Spacer(modifier = Modifier.height(12.dp))
                         Text(
                             text = "Descripción",
@@ -184,20 +177,36 @@ fun RecetasSetasListItem(recipes: Recipe) {
                             color = Color.Black
                         )
                         Text(
-                            text = recipes.preparacion,
+                            text = receta.Descripcion,
                             textAlign = TextAlign.Justify,
                             fontWeight = FontWeight.SemiBold
                         )
                         Spacer(modifier = Modifier.height(12.dp))
+
                         Text(
-                            text = "Nombre cientifico",
+                            text = "Ingredientes",
                             fontWeight = FontWeight.Bold,
                             color = Color.Black
                         )
-                        Text(text = recipes.ingredientes, fontWeight = FontWeight.SemiBold)
+                        Text(text = receta.Ingredientes, fontWeight = FontWeight.SemiBold)
+
                         Spacer(modifier = Modifier.height(12.dp))
-                        Text(text = "Estación", fontWeight = FontWeight.Bold, color = Color.Black)
-                        Text(text = recipes.ingredientes, fontWeight = FontWeight.SemiBold)
+
+                        Text(
+                            text = "Preparacion",
+                            fontWeight = FontWeight.Bold,
+                            color = Color.Black
+                        )
+                        Text(text = receta.Preparacion, fontWeight = FontWeight.SemiBold)
+
+                        Spacer(modifier = Modifier.height(12.dp))
+
+                        Text(
+                            text = "Tiempo preparacion",
+                            fontWeight = FontWeight.Bold,
+                            color = Color.Black
+                        )
+                        Text(text = receta.TiempoPreparacion, fontWeight = FontWeight.SemiBold)
                     }
                 }
             }
@@ -205,11 +214,11 @@ fun RecetasSetasListItem(recipes: Recipe) {
     }
 }
 
-fun filterSetasRecetas(recipes: List<Recipe>, query: String): List<Recipe> {
-    return recipes.filter {
-        it.nombre.contains(query, ignoreCase = true) ||
-                it.nombre.contains(query, ignoreCase = true) ||
-                it.ingredientes.contains(query, ignoreCase = true) ||
-                it.preparacion.contains(query, ignoreCase = true)
+fun filterSetasRecetas(recetas: List<Recetas>, query: String): List<Recetas> {
+    return recetas.filter {
+        it.NombreReceta.contains(query, ignoreCase = true) /*||
+                it.Descripcion.contains(query, ignoreCase = true) ||
+                it.Ingredientes.contains(query, ignoreCase = true) ||
+                it.Preparacion.contains(query, ignoreCase = true) */
     }
 }

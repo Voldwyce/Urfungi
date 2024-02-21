@@ -109,4 +109,10 @@ dependencies {
     annotationProcessor ("com.github.bumptech.glide:compiler:4.12.0")
     implementation("io.coil-kt:coil-compose:1.4.0")
     implementation(platform("androidx.compose:compose-bom:2023.08.00"))
+    // Core HTTP client features
+    implementation("io.ktor:ktor-client-core:1.6.4")
+
+    // JSON serialization/deserialization support
+    implementation("io.ktor:ktor-client-json:1.6.4")
+    implementation("io.ktor:ktor-client-json-jvm:1.6.4")
 }

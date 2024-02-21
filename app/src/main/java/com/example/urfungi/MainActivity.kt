@@ -82,11 +82,16 @@ import com.example.urfungi.Curiosidades.SetasListScreen
 import com.example.urfungi.QuizJuego.QuizScreenFromFirebase
 import com.example.urfungi.Recetas.RecetasSetasListScreen
 import com.example.urfungi.ui.theme.AppTheme
+import com.example.urfungi.Restaurantes.Restaurantes
+import com.example.urfungi.Restaurantes.RestaurantesSetasListScreen
 import com.google.firebase.Firebase
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.database.DatabaseReference
 import com.google.firebase.database.database
 import com.google.firebase.firestore.firestore
+import com.google.gson.Gson
+import com.google.gson.reflect.TypeToken
+import kotlinx.coroutines.tasks.await
 import org.osmdroid.config.Configuration
 import org.osmdroid.library.BuildConfig
 import java.io.IOException
@@ -145,6 +150,7 @@ class MainActivity : ComponentActivity() {
                             NavigationBar {
                                 val navBackStackEntry by navController.currentBackStackEntryAsState()
                                 val destinoActual = navBackStackEntry?.destination
+
 
                                 Destino.entries.forEach { destino ->
                                     val destinoSeleccionado =
@@ -307,6 +313,10 @@ class MainActivity : ComponentActivity() {
 
                                 composable("recetas_list_item") {
                                     RecetasSetasListScreen()
+                                }
+
+                                composable("restaurantes_list_item") {
+                                    RestaurantesSetasListScreen(navController)
                                 }
 
                                 composable(
@@ -643,6 +653,36 @@ class MainActivity : ComponentActivity() {
             }
         }
     }
+
+// Función para obtener la ubicación del restaurante desde Firebase
+fun obtenerUbicacionesRestaurantes(
+    onSuccess: (List<Pair<String, String>>) -> Unit,
+    onError: (String) -> Unit
+) {
+    try {
+        val firestore = Firebase.firestore
+        val restaurantesRef = firestore.collection("restaurantes")
+        restaurantesRef.get()
+            .addOnSuccessListener { snapshot ->
+                val ubicaciones = mutableListOf<Pair<String, String>>()
+                for (document in snapshot.documents) {
+                    val longitud = document.getString("longitud")
+                    val latitud = document.getString("latitud")
+                    if (longitud != null && latitud != null) {
+                        ubicaciones.add(Pair(longitud, latitud))
+                    }
+                }
+                onSuccess(ubicaciones)
+            }
+            .addOnFailureListener { exception ->
+                onError("Error al obtener las ubicaciones de los restaurantes: ${exception.message}")
+            }
+    } catch (e: Exception) {
+        onError("Error al obtener las ubicaciones de los restaurantes: ${e.message}")
+    }
+}
+
+
 
     @Composable
     fun MensajesCard(usuario: usuarios?, onLogoutClick: () -> Unit, onEditClick: () -> Unit) {

@@ -126,12 +126,17 @@ fun SetasListContent(setas: List<Setas>) {
                     modifier = Modifier.padding(13.dp)
                 )
             }
-            items(setasGroup) { seta ->
-                SetasListItem(seta = seta)
+            item {
+                LazyRow {
+                    items(setasGroup) { seta ->
+                        SetasListItem(seta = seta)
+                    }
+                }
             }
         }
     }
 }
+
 
 @Composable
 fun SetasListItem(seta: Setas) {
@@ -164,8 +169,6 @@ fun SetasListItem(seta: Setas) {
                     )
             )
 
-            Spacer(modifier = Modifier.height(16.dp)) // Agregar espacio entre la imagen y el texto
-
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -173,7 +176,6 @@ fun SetasListItem(seta: Setas) {
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Column {
-                    Spacer(modifier = Modifier.height(29.dp))
                     Text(text = seta.Nombre, fontWeight = FontWeight.Bold, color = Color.LightGray)
                 }
             }
@@ -210,7 +212,10 @@ fun SetasListItem(seta: Setas) {
 
                     Spacer(modifier = Modifier.height(20.dp)) // Agregar espacio entre la imagen y el texto
 
-                    Text(text = "Nombre cientifico: ", fontWeight = FontWeight.Bold) // Nombre científico en negrita
+                    Text(
+                        text = "Nombre cientifico: ",
+                        fontWeight = FontWeight.Bold
+                    ) // Nombre científico en negrita
                     Text(text = seta.NombreCientifico)
 
                     Spacer(modifier = Modifier.height(20.dp)) // Agregar espacio entre la imagen y el texto
@@ -257,7 +262,8 @@ fun filteredSetas(setas: List<Setas>, query: String): List<Setas> {
         it.Nombre.contains(query, ignoreCase = true) ||
                 it.Descripcion.contains(query, ignoreCase = true) ||
                 it.NombreCientifico.contains(query, ignoreCase = true) ||
-                it.Habitat.contains(query, ignoreCase = true)
+                it.Habitat.contains(query, ignoreCase = true) ||
+                it.Toxicidad.contains(query, ignoreCase = true)
     }
 }
 
