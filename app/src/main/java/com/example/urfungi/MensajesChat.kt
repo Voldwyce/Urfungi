@@ -132,11 +132,13 @@ fun MensajesChat(usuarioId: String, username: String) {
             reverseLayout = true
         ) {
             itemsIndexed(mensajes) { _, mensaje ->
+                val isCurrentUserMessage = mensaje.usuarioMensaje == userAuth
+
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
                         .padding(8.dp),
-                    horizontalArrangement = if (mensaje.usuarioMensaje == userAuth) Arrangement.End else Arrangement.Start,
+                    horizontalArrangement = if (isCurrentUserMessage) Arrangement.End else Arrangement.Start,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     // Verificar si el mensaje no es nulo ni está vacío antes de mostrarlo
@@ -145,14 +147,13 @@ fun MensajesChat(usuarioId: String, username: String) {
                             text = mensaje.mensaje,
                             textAlign = TextAlign.Start,
                             modifier = Modifier
-                                .background(Color.Gray)
+                                .background(if (isCurrentUserMessage) Color(0xFF64B5F6) else Color.Gray)
                                 .padding(8.dp)
                         )
                     }
                 }
             }
         }
-
         // Espaciado entre la lista de mensajes y la zona de escritura
         Spacer(modifier = Modifier.height(8.dp))
 
