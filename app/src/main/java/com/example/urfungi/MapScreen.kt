@@ -1,7 +1,6 @@
 import android.Manifest
 import android.content.Context
 import android.content.pm.PackageManager
-import android.util.Log
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.runtime.*
@@ -15,7 +14,6 @@ import com.example.urfungi.Post
 import com.google.android.gms.location.FusedLocationProviderClient
 import com.google.android.gms.location.LocationServices
 import com.google.firebase.auth.FirebaseAuth
-import com.google.firebase.firestore.FirebaseFirestore
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.suspendCancellableCoroutine
@@ -91,6 +89,7 @@ fun MapScreen(navController: NavController, lat: Double?, lon: Double?) {
     LaunchedEffect(Unit) {
         posts = loadPosts()
     }
+
 
     val mapView = rememberMapViewWithUserLocation(context, coroutineScope)
     val db = FirebaseFirestore.getInstance()
