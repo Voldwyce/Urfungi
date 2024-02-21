@@ -9,5 +9,7 @@ data class Post(
     val cordenadas: String = "",
     val fecha: String = "",
     val foto: String = "",
-    val likes: List<String> = emptyList()
+    val privacidad: String = "Privado",
+    val likes: List<String> = emptyList(),
+    var comentarios: List<String> = emptyList()
 )

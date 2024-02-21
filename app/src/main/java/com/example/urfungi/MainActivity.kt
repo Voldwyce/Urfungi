@@ -15,13 +15,16 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.AnimatedContentTransitionScope
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -36,6 +39,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -47,6 +51,7 @@ import androidx.compose.material3.NavigationBarItem
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextField
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -89,6 +94,17 @@ import java.util.concurrent.ExecutorService
 import java.util.concurrent.Executors
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.dp
+import androidx.navigation.NavType
+import androidx.navigation.navArgument
+import coil.compose.AsyncImage
+import coil.compose.rememberImagePainter
+import com.example.urfungi.QuizJuego.HighscoresScreen
+import com.google.firebase.firestore.FieldValue
+import com.google.firebase.storage.storage
+import kotlinx.coroutines.tasks.await
+import java.text.SimpleDateFormat
+import java.util.Date
+import java.util.Locale
 
 //import androidx.compose.material.rememberCoilPainter
 
@@ -137,7 +153,12 @@ class MainActivity : ComponentActivity() {
                                     NavigationBarItem(
                                         selected = destinoSeleccionado,
                                         onClick = {
-                                            if (!destinoSeleccionado) {
+                                            if (destino.nombre == R.string.destino3) {
+                                                navController.navigate(Destino.Destino3.ruta) {
+                                                    popUpTo(navController.graph.findStartDestination().id)
+                                                    launchSingleTop = true
+                                                }
+                                            } else if (!destinoSeleccionado) {
                                                 navController.navigate(destino.ruta) {
                                                     popUpTo(navController.graph.findStartDestination().id)
                                                     launchSingleTop = true
@@ -206,7 +227,19 @@ class MainActivity : ComponentActivity() {
                                     ) {
                                         Text(text = stringResource(id = Destino.Destino2.nombre))
                                     }
-                                    MapScreen()
+                                    MapScreen(navController, null, null)
+                                }
+
+                                composable(
+                                    route = "mapScreen/{lat}/{lon}",
+                                    arguments = listOf(
+                                        navArgument("lat") { type = NavType.FloatType },
+                                        navArgument("lon") { type = NavType.FloatType }
+                                    )
+                                ) { backStackEntry ->
+                                    val lat = backStackEntry.arguments?.getDouble("lat")
+                                    val lon = backStackEntry.arguments?.getDouble("lon")
+                                    MapScreen(navController, lat, lon)
                                 }
 
                                 composable(
@@ -259,16 +292,11 @@ class MainActivity : ComponentActivity() {
                                         }
                                     ) { paddingValues ->
                                         Surface(
-                                            modifier = Modifier.fillMaxSize()
+                                            modifier = Modifier
+                                                .fillMaxSize()
+                                                .padding(top = paddingValues.calculateTopPadding())
                                         ) {
-                                            Box(
-                                                modifier = Modifier
-                                                    .fillMaxSize()
-                                                    .padding(paddingValues),
-                                                contentAlignment = Alignment.Center
-                                            ) {
-                                                Text(text = stringResource(id = Destino.Destino3.nombre))
-                                            }
+                                            AllPostsScreen()
                                         }
                                     }
                                 }
@@ -312,7 +340,7 @@ class MainActivity : ComponentActivity() {
                                             .padding(start = 16.dp, top = 40.dp, bottom = 40.dp),
                                         contentAlignment = Alignment.Center
                                     ) {
-                                        UserPostsScreen()
+                                        UserPostsScreen(navController)
                                     }
                                 }
 
@@ -363,8 +391,13 @@ class MainActivity : ComponentActivity() {
                                         modifier = Modifier.fillMaxSize(),
                                         contentAlignment = Alignment.Center
                                     ) {
-                                        QuizScreenFromFirebase()
+                                        QuizScreenFromFirebase(
+                                            onHighscoresClicked = { navController.navigate("highscores") }
+                                        )
                                     }
+                                }
+                                composable("highscores") {
+                                    HighscoresScreen()
                                 }
                             }
                         }
@@ -563,20 +596,21 @@ class MainActivity : ComponentActivity() {
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 // Imagen de perfil del amigo a la izquierda
-                AndroidView(factory = { context ->
-                    ImageView(context).apply {
-                        val amigoFoto = amigo.foto
-                        val imageUrl = "$amigoFoto"
-                        Glide.with(context)
-                            .load(imageUrl)
-                            .fitCenter()
-                            .transform(CircleCrop())
-                            .into(this)
-                    }
-                }, modifier = Modifier
-                    .size(80.dp)
-                    .clip(CircleShape)
-                    .border(2.dp, Color.Green, CircleShape)
+                AndroidView(
+                    factory = { context ->
+                        ImageView(context).apply {
+                            val amigoFoto = amigo.foto
+                            val imageUrl = "$amigoFoto"
+                            Glide.with(context)
+                                .load(imageUrl)
+                                .fitCenter()
+                                .transform(CircleCrop())
+                                .into(this)
+                        }
+                    }, modifier = Modifier
+                        .size(80.dp)
+                        .clip(CircleShape)
+                        .border(2.dp, Color.Green, CircleShape)
                 )
 
                 // Espaciador horizontal
@@ -630,23 +664,24 @@ class MainActivity : ComponentActivity() {
                             .fillMaxSize()
                             .padding(6.dp),
 
-                    verticalAlignment = Alignment.CenterVertically
+                        verticalAlignment = Alignment.CenterVertically
                     ) {
                         // Imagen de perfil del usuario a la izquierda
-                        AndroidView(factory = { context ->
-                            ImageView(context).apply {
-                                val userFoto = usuario.foto
-                                val imageUrl = "$userFoto"
-                                Glide.with(context)
-                                    .load(imageUrl)
-                                    .fitCenter()
-                                    .transform(CircleCrop())
-                                    .into(this)
-                            }
-                        }, modifier = Modifier
-                            .size(80.dp)
-                            .clip(CircleShape)
-                            .border(2.dp, Color.Green, CircleShape)
+                        AndroidView(
+                            factory = { context ->
+                                ImageView(context).apply {
+                                    val userFoto = usuario.foto
+                                    val imageUrl = "$userFoto"
+                                    Glide.with(context)
+                                        .load(imageUrl)
+                                        .fitCenter()
+                                        .transform(CircleCrop())
+                                        .into(this)
+                                }
+                            }, modifier = Modifier
+                                .size(80.dp)
+                                .clip(CircleShape)
+                                .border(2.dp, Color.Green, CircleShape)
                         )
 
                         // Espaciador horizontal
@@ -694,7 +729,8 @@ class MainActivity : ComponentActivity() {
                                     .background(Color.Gray)
                                     .padding(top = 8.dp, end = 8.dp)
                             ) {
-                                Icon(imageVector = Icons.Default.Settings,
+                                Icon(
+                                    imageVector = Icons.Default.Settings,
                                     contentDescription = "Configuración",
                                     modifier = Modifier
                                         .fillMaxSize()
@@ -715,7 +751,8 @@ class MainActivity : ComponentActivity() {
                                     .padding(top = 8.dp, end = 8.dp)
 
                             ) {
-                                Icon(imageVector = Icons.Default.ExitToApp,
+                                Icon(
+                                    imageVector = Icons.Default.ExitToApp,
                                     contentDescription = "Logout",
                                     modifier = Modifier
                                         .fillMaxSize()
@@ -786,6 +823,265 @@ class MainActivity : ComponentActivity() {
         } catch (ioException: IOException) {
             ioException.printStackTrace()
             return null
+        }
+    }
+}
+
+@Composable
+fun AllPostsScreen() {
+    val db = Firebase.firestore
+    val auth = FirebaseAuth.getInstance()
+    val currentUser = auth.currentUser
+
+    var posts by remember { mutableStateOf<List<Pair<String, Post>>>(emptyList()) }
+    var friends by remember { mutableStateOf<List<String>>(emptyList()) }
+    var username by remember { mutableStateOf<String?>(null) }
+
+    LaunchedEffect(Unit) {
+        if (currentUser != null) {
+            val userRef = db.collection("usuarios").document(currentUser.uid)
+            userRef.get().addOnSuccessListener { documentSnapshot ->
+                val user = documentSnapshot.toObject(usuarios::class.java)
+                username = user?.username
+                friends = user?.amigos ?: emptyList()
+
+                val postsRef = db.collection("posts")
+                postsRef.addSnapshotListener { querySnapshot, _ ->
+                    val allPosts = querySnapshot?.documents?.mapNotNull { document ->
+                        val post = document.toObject(Post::class.java)
+                        if (post != null) Pair(document.id, post) else null
+                    } ?: emptyList()
+
+                    posts = allPosts.filter { postPair ->
+                        postPair.second.usuario != currentUser.uid && (postPair.second.privacidad == "Publico" || (postPair.second.privacidad == "Amigos" && friends.contains(
+                            postPair.second.usuario
+                        )))
+                    }
+                }
+            }
+        }
+    }
+    LazyColumn {
+        item { /* Header content */ }
+        items(posts) { postPair ->
+            PostCard(postPair = postPair, onLikeClick = ::onLikeClick, userUsername = username)
+        }
+        item { /* Footer content */ }
+    }
+}
+
+@Composable
+fun PostCard(postPair: Pair<String, Post>, onLikeClick: (Pair<String, Post>) -> Unit, userUsername: String?) {
+    val currentUser = FirebaseAuth.getInstance().currentUser
+    val isLiked = currentUser != null && postPair.second.likes.contains(currentUser.uid)
+    val likesCount = postPair.second.likes.size
+    var newComment by remember { mutableStateOf("") }
+    var showDialog by remember { mutableStateOf(false) }
+
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(15.dp, 15.dp, 14.dp)
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .align(Alignment.CenterHorizontally)
+        ) {
+            AsyncImage(
+                model = postPair.second.foto,
+                contentDescription = null,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .fillMaxHeight()
+            )
+            Spacer(modifier = Modifier.height(16.dp))
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(start = 16.dp, end = 16.dp, bottom = 16.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                Column(
+                    modifier = Modifier.weight(1f)
+                ) {
+                    Text(
+                        text = postPair.second.titulo,
+                        fontWeight = FontWeight.Bold,
+                        color = Color.LightGray
+                    )
+                    Spacer(modifier = Modifier.height(4.dp))
+                    Text(text = postPair.second.fecha, color = Color.LightGray)
+                }
+
+                Column(
+                    horizontalAlignment = Alignment.CenterHorizontally
+                ) {
+                    IconButton(onClick = { onLikeClick(postPair) }) {
+                        Icon(
+                            imageVector = if (isLiked) Icons.Filled.Favorite else Icons.Filled.FavoriteBorder,
+                            contentDescription = "Like Button",
+                            tint = if (isLiked) Color.Red else Color.Gray
+                        )
+                    }
+                    Text(text = likesCount.toString(), color = Color.Gray)
+                }
+
+                Column(
+                    horizontalAlignment = Alignment.CenterHorizontally
+                ) {
+                    IconButton(onClick = { showDialog = true }) {
+                        Icon(
+                            imageVector = Icons.Default.ChatBubbleOutline,
+                            contentDescription = "Comentarios",
+                            tint = Color.Gray
+                        )
+                    }
+                    Text(text = postPair.second.comentarios.size.toString(), color = Color.Gray)
+                }
+            }
+        }
+        Spacer(modifier = Modifier.height(16.dp))
+    }
+    if (showDialog) {
+        AlertDialog(
+            onDismissRequest = { showDialog = false },
+            title = { Text("Comentarios") },
+            text = {
+                Column {
+                    LazyColumn {
+                        items(postPair.second.comentarios) { comment ->
+                            Card(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(8.dp)
+                            ) {
+                                Column(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .padding(8.dp)
+                                ) {
+                                    val commentParts = comment.split(" at ")
+                                    val usernameAndComment = commentParts[0].split(": ")
+                                    val username = usernameAndComment[0]
+                                    val commentText = usernameAndComment[1]
+                                    val timestamp = commentParts[1]
+
+                                    Text(text = username, fontWeight = FontWeight.Bold)
+                                    Spacer(modifier = Modifier.height(4.dp))
+                                    Text(text = commentText)
+                                    Spacer(modifier = Modifier.height(4.dp))
+                                    Text(text = timestamp, fontSize = 12.sp)
+
+                                    Log.d("DEBUG", "Username del comentario: $username")
+                                    Log.d("DEBUG", "DisplayName del usuario actual: $userUsername")
+                                    if (currentUser != null && username == userUsername) {
+                                        IconButton(onClick = {
+                                            deleteComment(
+                                                postPair.first,
+                                                comment
+                                            )
+                                        }) {
+                                            Icon(
+                                                imageVector = Icons.Default.Delete,
+                                                contentDescription = "Delete Comment Button",
+                                                tint = Color.Gray
+                                            )
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(8.dp),
+                        horizontalArrangement = Arrangement.SpaceBetween
+                    ) {
+                        TextField(
+                            value = newComment,
+                            onValueChange = { newComment = it },
+                            label = { Text("Escribe un comentario") },
+                            modifier = Modifier.weight(1f)
+                        )
+                        IconButton(
+                            onClick = {
+                                if (currentUser != null && newComment.isNotBlank()) {
+                                    val fullComment = "${currentUser.displayName}: $newComment"
+                                    addComment(postPair.first, fullComment)
+                                    newComment = ""
+                                }
+                            },
+                            modifier = Modifier.align(Alignment.CenterVertically)
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.Send,
+                                contentDescription = "Send Comment Button",
+                                tint = Color.Gray
+                            )
+                        }
+                    }
+                }
+            },
+            confirmButton = {
+                Button(onClick = { showDialog = false }) {
+                    Text("Cerrar")
+                }
+            }
+        )
+    }
+}
+
+
+fun addComment(postId: String, comment: String) {
+    val db = Firebase.firestore
+    val postRef = db.collection("posts").document(postId)
+    val currentUser = FirebaseAuth.getInstance().currentUser
+
+    if (currentUser != null) {
+        val userRef = db.collection("usuarios").document(currentUser.uid)
+        userRef.get().addOnSuccessListener { documentSnapshot ->
+            val user = documentSnapshot.toObject(usuarios::class.java)
+            if (user != null) {
+                val username = user.username
+                val timestamp = SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.getDefault()).format(Date())
+                val cleanedComment = comment.trimStart(':') // Elimina cualquier dos puntos al principio del comentario
+                val fullComment = "$username: $cleanedComment at $timestamp"
+                postRef.update("comentarios", FieldValue.arrayUnion(fullComment))
+            }
+        }
+    }
+}
+
+fun deleteComment(postId: String, comment: String) {
+    val db = Firebase.firestore
+    val postRef = db.collection("posts").document(postId)
+
+    postRef.update("comentarios", FieldValue.arrayRemove(comment))
+}
+
+fun onLikeClick(postPair: Pair<String, Post>) {
+    val currentUser = FirebaseAuth.getInstance().currentUser
+    if (currentUser != null) {
+        val db = Firebase.firestore
+        val postRef = db.collection("posts").document(postPair.first)
+
+        postRef.get().addOnSuccessListener { documentSnapshot ->
+            val currentPost = documentSnapshot.toObject(Post::class.java)
+            if (currentPost != null) {
+                val likes = currentPost.likes.toMutableList()
+                if (likes.contains(currentUser.uid)) {
+                    // The user has already liked the post, so we remove it
+                    likes.remove(currentUser.uid)
+                } else {
+                    // The user has not liked the post, so we add it
+                    likes.add(currentUser.uid)
+                }
+
+                postRef.update("likes", likes)
+            }
         }
     }
 }

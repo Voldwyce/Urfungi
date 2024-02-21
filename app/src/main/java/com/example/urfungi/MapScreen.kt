@@ -10,6 +10,7 @@ import androidx.compose.ui.platform.LocalLifecycleOwner
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
+import androidx.navigation.NavController
 import com.example.urfungi.Post
 import com.google.android.gms.location.FusedLocationProviderClient
 import com.google.android.gms.location.LocationServices
@@ -57,7 +58,10 @@ suspend fun FusedLocationProviderClient.awaitLastLocation(context: Context) = su
 }
 
 @Composable
-fun MapScreen() {
+fun MapScreen(navController: NavController, lat: Double?, lon: Double?) {
+    val latitude = lat?.toDouble()
+    val longitude = lon?.toDouble()
+
     val context = LocalContext.current
     val fusedLocationClient = remember { LocationServices.getFusedLocationProviderClient(context) }
     val coroutineScope = rememberCoroutineScope()
@@ -78,15 +82,27 @@ fun MapScreen() {
         if (isGranted) {
             coroutineScope.launch {
                 val location = fusedLocationClient.awaitLastLocation(context)
-                val geoPoint = GeoPoint(location.latitude, location.longitude)
-                mapView.controller.setCenter(geoPoint)
+                if (location != null && latitude == null && longitude == null) {
+                    val geoPoint = GeoPoint(location.latitude, location.longitude)
+                    mapView.controller.setCenter(geoPoint)
+                }
             }
         } else {
-            // Manejar el caso en que el usuario rechaza el permiso
         }
     }
+
     AndroidView({ mapView }) { mapView ->
-        // Actualiza la vista del mapa aquí si es necesario
+        if (latitude != null && longitude != null) {
+            val geoPoint = GeoPoint(latitude, longitude)
+            mapView.controller.setCenter(geoPoint)
+            mapView.controller.setZoom(15.0)
+
+            val marker = mapView.overlays.find {
+                it is Marker && it.position.latitude == latitude && it.position.longitude == longitude
+            } as? Marker
+
+            marker?.showInfoWindow()
+        }
     }
 
     DisposableEffect(Unit) {
@@ -95,12 +111,6 @@ fun MapScreen() {
                 Manifest.permission.ACCESS_FINE_LOCATION
             ) == PackageManager.PERMISSION_GRANTED
         ) {
-            coroutineScope.launch {
-                val location = fusedLocationClient.awaitLastLocation(context)
-                val geoPoint = GeoPoint(location.latitude, location.longitude)
-                mapView.controller.setCenter(geoPoint)
-            }
-        } else {
             requestPermissionLauncher.launch(Manifest.permission.ACCESS_FINE_LOCATION)
         }
         onDispose { }
@@ -116,7 +126,6 @@ fun rememberMapViewWithUserLocation(
         MapView(context).apply {
             setTileSource(TileSourceFactory.MAPNIK)
 
-            // Create a new MyLocationNewOverlay and add it to the map
             val myLocationOverlay = MyLocationNewOverlay(GpsMyLocationProvider(context), this)
             myLocationOverlay.enableMyLocation()
             overlays.add(myLocationOverlay)
@@ -137,7 +146,7 @@ suspend fun loadPosts(): List<Post> {
 
     val posts = result.documents.mapNotNull { document ->
         val post = document.toObject(Post::class.java)
-        post?.id = document.id // Asignar el ID del documento a la propiedad 'id' del post
+        post?.id = document.id
         post
     }
 
@@ -155,14 +164,13 @@ fun DrawMarkers(mapView: MapView, posts: List<Post>) {
             val latitud = cordenadas[0].trim().toDouble()
             val longitud = cordenadas[1].trim().toDouble()
 
-            // Log the latitude and longitude values
             Log.d("MapScreen", "Latitud: $latitud, Longitud: $longitud")
 
             val geoPoint = GeoPoint(latitud, longitud)
             val marker = Marker(mapView).apply {
                 position = geoPoint
                 title = post.titulo
-                subDescription = "${post.fecha}\n${post.descripcion}" // Aquí se muestra la fecha y la descripción
+                subDescription = "${post.descripcion}\n\n${post.fecha}"
             }
             mapView.overlays.add(marker)
 

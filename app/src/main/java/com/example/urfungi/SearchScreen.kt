@@ -124,6 +124,10 @@ fun MushroomForm(
     var isUploading by remember { mutableStateOf(false) }
     var selectedMushroom by remember { mutableStateOf<Setas?>(null) }
 
+    var privacidad by remember { mutableStateOf("Privado") }
+    val privacidadOptions = listOf("Privado", "Amigos", "Publico")
+    var showPrivacidadDialog by remember { mutableStateOf(false) }
+
 
     LaunchedEffect(Unit) {
         mushroomData.value = fetchMushroomData()
@@ -380,10 +384,44 @@ fun MushroomForm(
             }
 
             Spacer(modifier = Modifier.height(16.dp))
-
-            Spacer(modifier = Modifier.height(16.dp))
             // Variables para controlar el diálogo y las estrellas
             var showDialogPost by remember { mutableStateOf(false) }
+            if (showPrivacidadDialog) {
+                AlertDialog(
+                    onDismissRequest = { showPrivacidadDialog = false },
+                    title = { Text("Selecciona la privacidad") },
+                    text = {
+                        LazyColumn {
+                            items(privacidadOptions) { option ->
+                                TextButton(
+                                    onClick = {
+                                        privacidad = option
+                                        showPrivacidadDialog = false
+                                    }
+                                ) {
+                                    Text(option)
+                                }
+                            }
+                        }
+                    },
+                    confirmButton = { }
+                )
+            }
+
+            Button(
+                onClick = { showPrivacidadDialog = true },
+                modifier = Modifier
+                    .width(150.dp)
+                    .height(50.dp),
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = Color.Black.copy(alpha = 0.5f), contentColor = Color.White
+                ),
+                shape = RectangleShape
+            ) {
+                Text(if (privacidad.isBlank()) "Privacidad" else privacidad)
+            }
+
+            Spacer(modifier = Modifier.height(16.dp))
 
             Button(
                 onClick = {
@@ -421,7 +459,8 @@ fun MushroomForm(
                                         descripcion = description,
                                         cordenadas = locationString,
                                         fecha = SimpleDateFormat("dd/MM/yyyy HH:mm:ss", Locale.getDefault()).format(Date()),
-                                        foto = photoUrl.toString()
+                                        foto = photoUrl.toString(),
+                                        privacidad = privacidad
                                     )
 
                                     // Subir el objeto Post a Firestore
