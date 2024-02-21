@@ -431,7 +431,8 @@ fun RegistrationScreen(
 
                                         // Crear un mapa con los datos del usuario
                                         val userData = hashMapOf(
-                                            "nombre" to name,
+                                            "id" to userId,
+                                                "nombre" to name,
                                             "username" to username,
                                             "fechaNacimiento" to birthdate,
                                             "email" to email,

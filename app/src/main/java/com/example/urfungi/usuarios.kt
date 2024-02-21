@@ -7,6 +7,7 @@ data class usuarios(
     val email: String? = "",
     val username: String? = "",
     val foto: String? = "",
+    val id: String = "",
     val fechaNacimiento: String? = "",
     val totalAciertos: Int = 0,
     val totalFallos: Int = 0,
