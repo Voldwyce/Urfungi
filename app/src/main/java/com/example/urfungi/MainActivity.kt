@@ -250,15 +250,7 @@ class MainActivity : ComponentActivity() {
                                     ) {
                                         Text(text = stringResource(id = Destino.Destino2.nombre))
                                     }
-                                    val ubicacionRestaurante =
-                                        Pair("2.19658605794489", "41.38866240056389")
-                                    val ubicacionesRestaurantes = listOf(
-                                        Pair("2.19658605794489", "41.38866240056389"),
-                                        Pair("2.0038505645996643", "41.570557053982185"),
-                                    )
-
-                                    MapScreen(ubicacionesRestaurantes)
-                                    /*MapScreen()*/
+                                    MapScreen()
                                 }
 
                                 composable(
@@ -489,7 +481,10 @@ class MainActivity : ComponentActivity() {
 }
 
 // Función para obtener la ubicación del restaurante desde Firebase
-fun obtenerUbicacionesRestaurantes(onSuccess: (List<Pair<String, String>>) -> Unit, onError: (String) -> Unit) {
+fun obtenerUbicacionesRestaurantes(
+    onSuccess: (List<Pair<String, String>>) -> Unit,
+    onError: (String) -> Unit
+) {
     try {
         val firestore = Firebase.firestore
         val restaurantesRef = firestore.collection("restaurantes")

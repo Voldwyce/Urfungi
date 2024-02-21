@@ -32,6 +32,7 @@ import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import android.graphics.Canvas
 import android.graphics.drawable.BitmapDrawable
+import android.util.Log
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
@@ -41,6 +42,8 @@ import androidx.compose.material3.Text
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import com.example.urfungi.Restaurantes.Restaurantes
+import com.google.firebase.firestore.FirebaseFirestore
 
 
 suspend fun FusedLocationProviderClient.awaitLastLocation(context: Context) =
@@ -70,13 +73,14 @@ suspend fun FusedLocationProviderClient.awaitLastLocation(context: Context) =
     }
 
 @Composable
-fun MapScreen(ubicacionesRestaurantes: List<Pair<String, String>>) {
+fun MapScreen() {
     val context = LocalContext.current
     val fusedLocationClient = remember { LocationServices.getFusedLocationProviderClient(context) }
     val coroutineScope = rememberCoroutineScope()
     val lifecycle = LocalLifecycleOwner.current.lifecycle
 
     val mapView = rememberMapViewWithUserLocation(context, coroutineScope)
+    val db = FirebaseFirestore.getInstance()
 
     // Estado para controlar la visibilidad de los marcadores
     var mostrarMarcadores by remember { mutableStateOf(true) }
@@ -101,15 +105,19 @@ fun MapScreen(ubicacionesRestaurantes: List<Pair<String, String>>) {
             // Manejar el caso en que el usuario rechaza el permiso
         }
     }
-    AndroidView({ mapView }) { mapView ->
-        // Actualiza la vista del mapa aquí si es necesario
+
+    // Función para mostrar u ocultar los marcadores en el mapa
+    fun toggleMarkersVisibility() {
+        mostrarMarcadores = !mostrarMarcadores
+        if (mostrarMarcadores) {
+            restaurantesMarkers?.forEach { mapView.overlays.add(it) }
+        } else {
+            restaurantesMarkers?.forEach { mapView.overlays.remove(it) }
+        }
     }
 
-    // Agregar los marcadores de los restaurantes al mapa cuando el estado de mostrarMarcadores cambie
-    if (mostrarMarcadores) {
-        restaurantesMarkers = addRestaurantMarkers(mapView, ubicacionesRestaurantes)
-    } else {
-        restaurantesMarkers?.forEach { mapView.overlays.remove(it) }
+    AndroidView({ mapView }) { mapView ->
+        // Actualiza la vista del mapa aquí si es necesario
     }
 
     DisposableEffect(Unit) {
@@ -118,6 +126,27 @@ fun MapScreen(ubicacionesRestaurantes: List<Pair<String, String>>) {
                 Manifest.permission.ACCESS_FINE_LOCATION
             ) != PackageManager.PERMISSION_GRANTED
         ) {
+            requestPermissionLauncher.launch(Manifest.permission.ACCESS_FINE_LOCATION)
+        }
+
+        if (ContextCompat.checkSelfPermission(
+                context,
+                Manifest.permission.ACCESS_FINE_LOCATION
+            ) == PackageManager.PERMISSION_GRANTED
+        ) {
+            // Acceder a la colección "restaurantes" de Firebase Firestore
+            db.collection("restaurantes")
+                .get()
+                .addOnSuccessListener { result ->
+                    val restaurantes = result.toObjects(Restaurantes::class.java)
+                    restaurantesMarkers = addRestaurantMarkers(mapView, restaurantes)
+                    // Mostrar u ocultar marcadores dependiendo del estado inicial de mostrarMarcadores
+                    toggleMarkersVisibility()
+                }
+                .addOnFailureListener { exception ->
+                    Log.d("MapScreen", "Error getting documents: ", exception)
+                }
+        } else {
             requestPermissionLauncher.launch(Manifest.permission.ACCESS_FINE_LOCATION)
         }
 
@@ -154,7 +183,7 @@ fun MapScreen(ubicacionesRestaurantes: List<Pair<String, String>>) {
         contentAlignment = Alignment.TopEnd
     ) {
         Button(
-            onClick = { mostrarMarcadores = !mostrarMarcadores },
+            onClick = { toggleMarkersVisibility() },
             modifier = Modifier
                 .size(120.dp, 50.dp)
         ) {
@@ -165,19 +194,18 @@ fun MapScreen(ubicacionesRestaurantes: List<Pair<String, String>>) {
 
 private fun addRestaurantMarkers(
     mapView: MapView,
-    ubicacionesRestaurantes: List<Pair<String, String>>
+    restaurantes: List<Restaurantes>
 ): List<Marker> {
     val markers = mutableListOf<Marker>()
-    ubicacionesRestaurantes.forEach { ubicacionRestaurante ->
+    restaurantes.forEach { restaurante ->
         val marker = Marker(mapView).apply {
             position = GeoPoint(
-                ubicacionRestaurante.second.toDouble(),
-                ubicacionRestaurante.first.toDouble()
+                restaurante.latitude.toDouble(),
+                restaurante.longitude.toDouble()
             )
             setAnchor(Marker.ANCHOR_CENTER, Marker.ANCHOR_BOTTOM)
-            title = "Restaurante"
+            title = restaurante.NombreRestaurante
         }
-        mapView.overlays.add(marker)
         markers.add(marker)
     }
     return markers
