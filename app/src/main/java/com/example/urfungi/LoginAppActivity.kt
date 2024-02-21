@@ -290,6 +290,7 @@
 
                                             // Crear un mapa con los datos del usuario
                                             val userData = hashMapOf(
+                                                "id" to userId,
                                                 "nombre" to name,
                                                 "username" to username,
                                                 "fechaNacimiento" to birthdate,

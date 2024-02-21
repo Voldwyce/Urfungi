@@ -21,7 +21,7 @@
         android:theme="@style/Theme.App.Starting"
         tools:targetApi="34">
         <activity
-            android:name=".Posts"
+            android:name=".Post"
             android:exported="false"
             android:label="@string/title_activity_posts"
             android:theme="@style/Theme.App.Starting" />

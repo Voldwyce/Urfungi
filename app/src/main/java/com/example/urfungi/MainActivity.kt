@@ -17,6 +17,7 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.AnimatedContentTransitionScope
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -26,7 +27,6 @@ import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -87,8 +87,10 @@ import org.osmdroid.library.BuildConfig
 import java.io.IOException
 import java.util.concurrent.ExecutorService
 import java.util.concurrent.Executors
-import androidx.compose.ui.platform.LocalDensity
-import androidx.compose.ui.unit.dp
+import androidx.compose.ui.text.style.TextAlign
+import androidx.navigation.NavController
+import com.google.firebase.firestore.FieldPath
+import com.google.firebase.firestore.FieldValue
 
 //import androidx.compose.material.rememberCoilPainter
 
@@ -188,9 +190,30 @@ class MainActivity : ComponentActivity() {
                                         slideOutOfContainer(AnimatedContentTransitionScope.SlideDirection.Left)
                                     }
                                 ) {
-                                    MensajesScreen()
+                                    MensajesScreen(navController = navController)
                                 }
 
+
+                                composable(
+                                    route = "mensajes/{usuarioId}/{username}",
+                                    enterTransition = {
+                                        slideIntoContainer(AnimatedContentTransitionScope.SlideDirection.Right)
+                                    },
+                                    exitTransition = {
+                                        slideOutOfContainer(AnimatedContentTransitionScope.SlideDirection.Left)
+                                    }
+                                ) { backStackEntry ->
+                                    val usuarioId = backStackEntry.arguments?.getString("usuarioId")
+                                    val username = backStackEntry.arguments?.getString("username")
+
+                                    if (usuarioId != null && username != null) {
+                                        // Aquí puedes cargar la pantalla MensajesChat con el usuario correspondiente
+                                        MensajesChat(usuarioId = usuarioId, username = username)
+                                    } else {
+                                        // Manejar el caso en el que no se proporciona el ID del usuario o el nombre de usuario
+                                        // Puedes mostrar un mensaje de error o volver a la pantalla anterior
+                                    }
+                                }
                                 composable(
                                     route = Destino.Destino2.ruta,
                                     enterTransition = {
@@ -434,9 +457,15 @@ class MainActivity : ComponentActivity() {
     }
 
     @Composable
-    fun MensajesScreen() {
+    fun MensajesScreen(navController: NavController) {
         var usuario by remember { mutableStateOf<usuarios?>(null) }
         var amigos by remember { mutableStateOf<List<usuarios>>(emptyList()) }
+        var solicitudes by remember { mutableStateOf<List<usuarios>>(emptyList()) }
+        var explorar by remember { mutableStateOf<List<usuarios>>(emptyList()) }
+        var listaActual by remember { mutableStateOf<List<usuarios>>(emptyList()) }
+        var solicitudesRecibidas = mutableListOf<usuarios>()
+        var solicitudesEnviadas = mutableListOf<usuarios>()
+        var clicUsuario by remember { mutableStateOf(false) }
 
 
         LaunchedEffect(Unit) {
@@ -454,18 +483,206 @@ class MainActivity : ComponentActivity() {
                         // Obtener la lista de amigos
                         val listaAmigos = usuario?.amigos ?: emptyList()
 
-                        // Obtener información de cada amigo y almacenarla en la lista 'amigos'
-                        listaAmigos.forEach { amigoId ->
-                            val amigoReference = db.collection("usuarios").document(amigoId)
-                            amigoReference.get().addOnSuccessListener { amigoSnapshot ->
-                                if (amigoSnapshot.exists()) {
-                                    val amigo = amigoSnapshot.toObject(usuarios::class.java)
-                                    if (amigo != null) {
-                                        amigos = amigos + amigo
+                        // Obtener la lista de solicitudes
+                        val listaSolicitud = usuario?.solicitudAmistad ?: emptyList()
+
+                        /*
+                        * Filtros para la lista de amigos:
+                        * 1. Tiene que estar en el del usuario en amigos
+                        * */
+
+                        if (listaAmigos.isNotEmpty()) {
+                            // Obtener información de cada amigo y almacenarla en la lista 'amigos'
+                            listaAmigos.forEach { amigoId ->
+                                val amigoReference = db.collection("usuarios").document(amigoId)
+                                amigoReference.get().addOnSuccessListener { amigoSnapshot ->
+                                    if (amigoSnapshot.exists()) {
+                                        val amigo = amigoSnapshot.toObject(usuarios::class.java)
+                                        if (amigo != null) {
+                                            amigos = amigos + amigo
+                                            // Actualizar la listaActual después de obtener la información del amigo
+                                            listaActual = amigos
+                                        }
                                     }
                                 }
                             }
+                        } else {
+                            listaActual = emptyList()
                         }
+
+                        /*
+                        * Filtros para la lista solicitudes:
+                        * 1. Si envias solicitud de amistad a un usuario se guardara el id del usuario
+                        * en solicitudesAmistad
+                        * 2. A la hora de mostrar la lista primero muestra a los usuarios que tienen tu usuario
+                        * en su solicitudesAmistad, en estos casos tiene que salir un boton para aceptar o rechazar,
+                        * despues mostrara los usuarios de tu solicitudesAmistad, que servira para saber a quien
+                        * le has enviado solicitud
+                        * */
+
+                        if (listaSolicitud.isNotEmpty()) {
+                            listaSolicitud.forEach { soliId ->
+                                val soliReference = db.collection("usuarios").document(soliId)
+                                soliReference.get().addOnSuccessListener { soliSnapshot ->
+                                    if (soliSnapshot.exists()) {
+                                        val soli = soliSnapshot.toObject(usuarios::class.java)
+                                        if (soli != null) {
+                                            solicitudesEnviadas.add(soli)
+                                        }
+                                    }
+                                }
+                            }
+
+                            // Obtener las solicitudes recibidas después de procesar las enviadas
+                            val currentUserID = usuario?.id ?: ""
+                            db.collection("usuarios")
+                                .whereArrayContains("solicitudAmistad", currentUserID)
+                                .get()
+                                .addOnSuccessListener { result ->
+                                    solicitudesRecibidas = result.toObjects(usuarios::class.java)
+
+                                    // Actualizar la listaActual después de obtener la información de la solicitud
+                                    solicitudes = solicitudesRecibidas + solicitudesEnviadas
+                                    listaActual = solicitudes
+                                }
+                                .addOnFailureListener { e ->
+                                    // Manejar errores aquí
+                                    Log.e(
+                                        TAG,
+                                        "Error al obtener la lista de solicitudesRecibidas en Firestore: $e"
+                                    )
+                                }
+                        } else {
+                            // Obtener las solicitudes recibidas después de procesar las enviadas
+                            val currentUserID = usuario?.id ?: ""
+                            db.collection("usuarios")
+                                .whereArrayContains("solicitudAmistad", currentUserID)
+                                .get()
+                                .addOnSuccessListener { result ->
+                                    solicitudesRecibidas = result.toObjects(usuarios::class.java)
+
+                                    if (solicitudesRecibidas.isNotEmpty()) {
+                                        solicitudes = solicitudesRecibidas
+                                        listaActual = solicitudes
+                                    } else {
+                                        listaActual = emptyList()
+                                    }
+                                }
+                                .addOnFailureListener { e ->
+                                    // Manejar errores aquí
+                                    Log.e(
+                                        TAG,
+                                        "Error al obtener la lista de solicitudesRecibidas en Firestore: $e"
+                                    )
+                                }
+                        }
+
+                        /*
+                        * Filtros para la lista de exploración:
+                        * 1. Esta lista tiene en cuenta todas las otras listas para mostrar a los usuarios.
+                        * 2. No deben aparecer amigos en esta lista
+                        * 3. No deben de aparecer usuarios que hayan enviado solicitud o usuarios a los que
+                        * hayas enviado solicitud
+                        */
+
+                        // Crear conjuntos de IDs de amigos y solicitudes para facilitar la comparación
+                        val setAmigos = listaAmigos.toSet()
+                        val setSolicitudes = listaSolicitud.toSet()
+
+                        // Cargar la lista completa de usuarios como exploración excluyendo al usuario actual, amigos y solicitudes
+                        if ((listaSolicitud.isNotEmpty()) && (listaAmigos.isNotEmpty())) {
+                            db.collection("usuarios")
+                                .whereNotIn(
+                                    FieldPath.documentId(),
+                                    listaSolicitud + listaAmigos
+                                ) // Excluir usuarios en la lista de solicitudes y amigos
+                                .get()
+                                .addOnSuccessListener { result ->
+                                    explorar = result.toObjects(usuarios::class.java)
+
+                                    // Filtrar la lista para excluir al usuario actual, amigos y solicitudes
+                                    explorar =
+                                        explorar.filterNot { it.id == userId || it.id in setAmigos || it.id in setSolicitudes }
+
+                                    // Actualizar la listaActual después de obtener la información de explorar
+                                    listaActual = explorar
+                                }
+                                .addOnFailureListener { e ->
+                                    // Manejar errores aquí
+                                    Log.e(
+                                        TAG,
+                                        "Error al obtener la lista de exploración en Firestore: $e"
+                                    )
+                                }
+                        } else if ((listaSolicitud.isEmpty()) && (listaAmigos.isNotEmpty())) {
+                            db.collection("usuarios")
+                                .whereNotIn(
+                                    FieldPath.documentId(),
+                                    listaAmigos
+                                ) // Excluir usuarios en la lista de amigos
+                                .get()
+                                .addOnSuccessListener { result ->
+                                    explorar = result.toObjects(usuarios::class.java)
+
+                                    // Filtrar la lista para excluir al usuario actual y amigos
+                                    explorar =
+                                        explorar.filterNot { it.id == userId || it.id in setAmigos }
+
+                                    // Actualizar la listaActual después de obtener la información de explorar
+                                    listaActual = explorar
+                                }
+                                .addOnFailureListener { e ->
+                                    // Manejar errores aquí
+                                    Log.e(
+                                        TAG,
+                                        "Error al obtener la lista de exploración en Firestore: $e"
+                                    )
+                                }
+                        } else if ((listaAmigos.isEmpty()) && (listaSolicitud.isNotEmpty())) {
+                            db.collection("usuarios")
+                                .whereNotIn(
+                                    FieldPath.documentId(),
+                                    listaSolicitud
+                                ) // Excluir usuarios en la lista de solicitudes
+                                .get()
+                                .addOnSuccessListener { result ->
+                                    explorar = result.toObjects(usuarios::class.java)
+
+                                    // Filtrar la lista para excluir al usuario actual y solicitudes
+                                    explorar =
+                                        explorar.filterNot { it.id == userId || it.id in setSolicitudes }
+
+                                    // Actualizar la listaActual después de obtener la información de explorar
+                                    listaActual = explorar
+                                }
+                                .addOnFailureListener { e ->
+                                    // Manejar errores aquí
+                                    Log.e(
+                                        TAG,
+                                        "Error al obtener la lista de exploración en Firestore: $e"
+                                    )
+                                }
+                        } else {
+                            db.collection("usuarios")
+                                .get()
+                                .addOnSuccessListener { result ->
+                                    explorar = result.toObjects(usuarios::class.java)
+
+                                    // Filtrar la lista para excluir al usuario actual
+                                    explorar = explorar.filterNot { it.id == userId }
+
+                                    // Actualizar la listaActual después de obtener la información de explorar
+                                    listaActual = explorar
+                                }
+                                .addOnFailureListener { e ->
+                                    // Manejar errores aquí
+                                    Log.e(
+                                        TAG,
+                                        "Error al obtener la lista de exploración en Firestore: $e"
+                                    )
+                                }
+                        }
+
                     } else {
                         // El documento no existe
                         Log.d(
@@ -480,9 +697,12 @@ class MainActivity : ComponentActivity() {
             }
         }
 
-        Box(
-            modifier = Modifier.fillMaxSize(),
-            contentAlignment = Alignment.TopStart
+
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .background(MaterialTheme.colorScheme.background)
+                .padding(8.dp)
         ) {
             // Texto "Tu Perfil"
             Text(
@@ -493,54 +713,153 @@ class MainActivity : ComponentActivity() {
                 modifier = Modifier
                     .padding(start = 16.dp, top = 12.dp)
             )
-
-            // Tarjeta de información del usuario
-            if (usuario != null) {
-                MensajesCard(
-                    usuario = usuario,
-                    onLogoutClick = {
-                        FirebaseAuth.getInstance().signOut()
-                        navigateToLoginAppActivity()
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(8.dp)
+                    .height(140.dp),
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                // Tarjeta de información del usuario
+                if (usuario != null) {
+                    MensajesCard(
+                        usuario = usuario,
+                        onLogoutClick = {
+                            FirebaseAuth.getInstance().signOut()
+                            navigateToLoginAppActivity()
+                        },
+                        onEditClick = {}
+                    )
+                } else {
+                    Text("El usuario es nulo")
+                }
+            }
+            // Botones superiores
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(8.dp)
+                    .height(40.dp),
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                Button(
+                    onClick = {
+                        listaActual = explorar
                     },
-                    onEditClick = {}
-                )
-            } else {
-                Text("El usuario es nulo")
+                    modifier = Modifier.weight(1f)
+                ) {
+                    Text("Explorar")
+                }
+
+                Button(
+                    onClick = {
+                        listaActual = amigos
+                    },
+                    modifier = Modifier.weight(1f)
+                ) {
+                    Text("Amigos")
+                }
+
+                Button(
+                    onClick = {
+                        listaActual = solicitudes
+                    },
+                    modifier = Modifier.weight(1f)
+                ) {
+                    Text("Solicitud")
+                }
             }
 
-            // Texto "Amigos"
-            Text(
-                text = "Amigos:",
-                fontSize = 20.sp,
-                fontWeight = FontWeight.Bold,
-                color = Color.White,
+            // Botones inferiores
+            Row(
                 modifier = Modifier
-                    .padding(16.dp)
-                    .align(Alignment.TopStart)
-                    .offset(y = 200.dp) // Ajustar según sea necesario para evitar superposición
-            )
-
-            // Botón "Añadir Amigos"
-            Button(
-                onClick = {
-                    // Implementa la lógica para añadir amigos
-                },
-                modifier = Modifier
-                    .padding(16.dp)
-                    .align(Alignment.TopStart)
-                    .offset(y = 240.dp) // Ajustar según sea necesario para evitar superposición
+                    .fillMaxWidth()
+                    .padding(8.dp)
+                    .height(40.dp),
+                horizontalArrangement = Arrangement.SpaceBetween
             ) {
-                Text("Añadir Amigos")
+                Button(
+                    onClick = {
+                        listaActual = amigos
+                        clicUsuario = true
+                    },
+                    modifier = Modifier.weight(1f)
+                ) {
+                    Text("Chat")
+                }
+
+                Button(
+                    onClick = {
+                    },
+                    modifier = Modifier.weight(1f)
+                ) {
+                    Text("Grupos")
+                }
             }
-
-            // Lista de tarjetas de amigos
-            LazyColumn(
+            Row(
                 modifier = Modifier
-                    .fillMaxSize()
-                    .padding(top = 310.dp) // Ajustar según sea necesario para evitar superposición
+                    .fillMaxWidth()
+                    .padding(8.dp)
+                    .height(400.dp),
+                horizontalArrangement = Arrangement.SpaceBetween
             ) {
-                items(amigos) { amigo ->
-                    AmigoCard(amigo = amigo)
+
+                // Lista de tarjetas de amigos
+                LazyColumn(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(top = 5.dp)
+                ) {
+
+                    if (listaActual.isNotEmpty()) {
+                        items(listaActual) { amigo ->
+                            AmigoCard(
+                                amigo = amigo,
+                                isExploring = (listaActual === explorar),
+                                onAddClick = {
+                                    // Agregar amigo.id a la lista de solicitudesAmistad del usuario actual
+                                    usuario?.let { currentUser ->
+                                        val db = Firebase.firestore
+                                        val userReference =
+                                            db.collection("usuarios").document(currentUser.id ?: "")
+
+                                        // Actualizar la lista de solicitudesAmistad en Firestore
+                                        userReference.update(
+                                            "solicitudAmistad",
+                                            FieldValue.arrayUnion(it)
+                                        )
+                                            .addOnSuccessListener {
+                                                // Éxito al agregar a las solicitudesAmistad
+                                            }
+                                            .addOnFailureListener { e ->
+                                                // Manejar errores aquí
+                                                Log.e(
+                                                    TAG,
+                                                    "Error al agregar a las solicitudesAmistad: $e"
+                                                )
+                                            }
+                                    }
+                                },
+                                navController = navController
+                            )
+                        }
+                    } else {
+                        // Mostrar mensaje cuando la lista esté vacía
+                        item {
+                            Text(
+                                text = when {
+                                    listaActual === amigos -> "Sin Amigos"
+                                    listaActual === solicitudes -> "Sin Solicitudes"
+                                    else -> "Exploración Completada"
+                                },
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(16.dp),
+                                textAlign = TextAlign.Center,
+                                color = Color.Gray
+                            )
+                        }
+                    }
                 }
             }
         }
@@ -548,7 +867,7 @@ class MainActivity : ComponentActivity() {
 
 
     @Composable
-    fun AmigoCard(amigo: usuarios) {
+    fun AmigoCard(amigo: usuarios, isExploring: Boolean, onAddClick: (String) -> Unit, navController: NavController) {
         Card(
             modifier = Modifier
                 .fillMaxWidth()
@@ -563,20 +882,21 @@ class MainActivity : ComponentActivity() {
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 // Imagen de perfil del amigo a la izquierda
-                AndroidView(factory = { context ->
-                    ImageView(context).apply {
-                        val amigoFoto = amigo.foto
-                        val imageUrl = "$amigoFoto"
-                        Glide.with(context)
-                            .load(imageUrl)
-                            .fitCenter()
-                            .transform(CircleCrop())
-                            .into(this)
-                    }
-                }, modifier = Modifier
-                    .size(80.dp)
-                    .clip(CircleShape)
-                    .border(2.dp, Color.Green, CircleShape)
+                AndroidView(
+                    factory = { context ->
+                        ImageView(context).apply {
+                            val amigoFoto = amigo.foto
+                            val imageUrl = "$amigoFoto"
+                            Glide.with(context)
+                                .load(imageUrl)
+                                .fitCenter()
+                                .transform(CircleCrop())
+                                .into(this)
+                        }
+                    }, modifier = Modifier
+                        .size(80.dp)
+                        .clip(CircleShape)
+                        .border(2.dp, Color.Green, CircleShape)
                 )
 
                 // Espaciador horizontal
@@ -596,7 +916,13 @@ class MainActivity : ComponentActivity() {
                         fontSize = 22.sp,
                         fontWeight = FontWeight.Bold,
                         color = Color.White,
-                        modifier = Modifier.padding(top = 8.dp) // Padding superior al username
+                        modifier = Modifier
+                            .padding(top = 8.dp)
+                            .clickable {
+                                // Navegar a la pantalla MensajesChat cuando se hace clic en el nombre de usuario
+                                // Asegúrate de tener acceso al NavController en este punto
+                                navController.navigate("mensajes/${amigo.id}/${amigo.username}")
+                            }// Padding superior al username
                     )
 
                     // Nombre completo del amigo
@@ -606,12 +932,59 @@ class MainActivity : ComponentActivity() {
                         color = Color.White
                     )
                 }
+
+                // Espaciador horizontal
+                Spacer(modifier = Modifier.width(16.dp))
+
+                // Botones a la derecha del todo
+                if (isExploring) {
+                    // Botón de Perfil
+                    IconButton(
+                        onClick = { /* Manejar acción de Perfil */ },
+                        modifier = Modifier
+                            .size(40.dp)
+                            .clip(CircleShape)
+                            .background(Color.Gray)
+                            .padding(top = 8.dp, end = 8.dp)
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Person,
+                            contentDescription = "Perfil",
+                            modifier = Modifier
+                                .fillMaxSize()
+                                .padding(4.dp)
+                        )
+                    }
+
+                    Spacer(modifier = Modifier.height(16.dp))
+
+                    // Botón de Agregar
+
+                    Button(
+                        onClick = { onAddClick(amigo.id) },
+
+                        modifier = Modifier
+                            .size(40.dp)
+                            .clip(CircleShape)
+                            .background(Color.Green)
+                            .padding(top = 8.dp, end = 8.dp)
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Add,
+                            contentDescription = "Agregar",
+                            modifier = Modifier
+                                .fillMaxSize()
+                                .padding(4.dp)
+                        )
+                    }
+                }
             }
         }
     }
 
     @Composable
     fun MensajesCard(usuario: usuarios?, onLogoutClick: () -> Unit, onEditClick: () -> Unit) {
+
         Box(
             modifier = Modifier.fillMaxSize(),
             contentAlignment = Alignment.TopStart
@@ -620,8 +993,7 @@ class MainActivity : ComponentActivity() {
                 Card(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .height(150.dp)
-                        .padding(top = 40.dp, start = 16.dp, end = 16.dp),
+                        .height(150.dp),
 
                     shape = RoundedCornerShape(16.dp),
                 ) {
@@ -630,23 +1002,24 @@ class MainActivity : ComponentActivity() {
                             .fillMaxSize()
                             .padding(6.dp),
 
-                    verticalAlignment = Alignment.CenterVertically
+                        verticalAlignment = Alignment.CenterVertically
                     ) {
                         // Imagen de perfil del usuario a la izquierda
-                        AndroidView(factory = { context ->
-                            ImageView(context).apply {
-                                val userFoto = usuario.foto
-                                val imageUrl = "$userFoto"
-                                Glide.with(context)
-                                    .load(imageUrl)
-                                    .fitCenter()
-                                    .transform(CircleCrop())
-                                    .into(this)
-                            }
-                        }, modifier = Modifier
-                            .size(80.dp)
-                            .clip(CircleShape)
-                            .border(2.dp, Color.Green, CircleShape)
+                        AndroidView(
+                            factory = { context ->
+                                ImageView(context).apply {
+                                    val userFoto = usuario.foto
+                                    val imageUrl = "$userFoto"
+                                    Glide.with(context)
+                                        .load(imageUrl)
+                                        .fitCenter()
+                                        .transform(CircleCrop())
+                                        .into(this)
+                                }
+                            }, modifier = Modifier
+                                .size(80.dp)
+                                .clip(CircleShape)
+                                .border(2.dp, Color.Green, CircleShape)
                         )
 
                         // Espaciador horizontal
@@ -694,7 +1067,8 @@ class MainActivity : ComponentActivity() {
                                     .background(Color.Gray)
                                     .padding(top = 8.dp, end = 8.dp)
                             ) {
-                                Icon(imageVector = Icons.Default.Settings,
+                                Icon(
+                                    imageVector = Icons.Default.Settings,
                                     contentDescription = "Configuración",
                                     modifier = Modifier
                                         .fillMaxSize()
@@ -715,7 +1089,8 @@ class MainActivity : ComponentActivity() {
                                     .padding(top = 8.dp, end = 8.dp)
 
                             ) {
-                                Icon(imageVector = Icons.Default.ExitToApp,
+                                Icon(
+                                    imageVector = Icons.Default.ExitToApp,
                                     contentDescription = "Logout",
                                     modifier = Modifier
                                         .fillMaxSize()
@@ -729,6 +1104,7 @@ class MainActivity : ComponentActivity() {
             }
         }
     }
+
 
     private fun navigateToLoginAppActivity() {
         val intent = Intent(this, LoginAppActivity::class.java)
@@ -789,3 +1165,4 @@ class MainActivity : ComponentActivity() {
         }
     }
 }
+
