@@ -128,8 +128,8 @@ fun MapScreen(navController: NavController, lat: Double?, lon: Double?) {
     }
 
     AndroidView({ mapView }) { mapView ->
-        if (lat != null && lon != null && lat in -90.0..90.0 && lon in -180.0..180.0) {
-            val geoPoint = GeoPoint(lat, lon)
+        if (latitude != null && longitude != null) {
+            val geoPoint = GeoPoint(latitude, longitude)
             mapView.controller.setCenter(geoPoint)
             mapView.controller.setZoom(15.0)
         } else {

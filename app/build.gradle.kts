@@ -85,6 +85,8 @@ dependencies {
     // Navigation
     implementation("androidx.navigation:navigation-common-ktx:2.7.6")
     implementation("androidx.navigation:navigation-compose:2.7.6")
+    implementation("androidx.core:core-splashscreen:1.0.0-rc02")
+
 
     // Datastore
     implementation("androidx.datastore:datastore-core-android:1.1.0-beta01")

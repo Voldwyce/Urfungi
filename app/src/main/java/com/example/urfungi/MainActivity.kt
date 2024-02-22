@@ -366,6 +366,14 @@ class MainActivity : ComponentActivity() {
                                     }
                                 }
 
+                                composable("weather_screen") {
+                                    WeatherApp()
+                                }
+
+                                composable("creditos") {
+                                    Creditos()
+                                }
+
                                 composable(
                                     route = Destino.Destino5.ruta,
                                     enterTransition = {

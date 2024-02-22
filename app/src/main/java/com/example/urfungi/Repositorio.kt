@@ -66,5 +66,38 @@ fun Repositorio(navController: NavController) {
                 fontSize = 20.sp
             )
         }
+        Button(
+            onClick = { navController.navigate("weather_screen") },
+            modifier = Modifier
+                .padding(16.dp)
+                .size(200.dp, 60.dp),
+            colors = ButtonDefaults.buttonColors(
+                containerColor = Color.Black.copy(alpha = 0.5f), contentColor = Color.White
+            ),
+            shape = RectangleShape
+        ) {
+            Text(
+                "Clima",
+                fontSize = 20.sp
+            )
+        }
+
+        Spacer(modifier = Modifier.weight(1f))
+
+        Button(
+            onClick = { navController.navigate("creditos") },
+            modifier = Modifier
+                .padding(16.dp)
+                .size(150.dp, 50.dp),
+            colors = ButtonDefaults.buttonColors(
+                containerColor = Color.Black.copy(alpha = 0.5f), contentColor = Color.White
+            ),
+            shape = RectangleShape
+        ) {
+            Text(
+                "Créditos",
+                fontSize = 20.sp
+            )
+        }
     }
 }
