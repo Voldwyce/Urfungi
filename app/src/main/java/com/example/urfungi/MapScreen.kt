@@ -128,16 +128,19 @@ fun MapScreen(navController: NavController, lat: Double?, lon: Double?) {
     }
 
     AndroidView({ mapView }) { mapView ->
-        if (latitude != null && longitude != null) {
-            val geoPoint = GeoPoint(latitude, longitude)
+        if (lat != null && lon != null && lat in -90.0..90.0 && lon in -180.0..180.0) {
+            val geoPoint = GeoPoint(lat, lon)
             mapView.controller.setCenter(geoPoint)
             mapView.controller.setZoom(15.0)
-
-            val marker = mapView.overlays.find {
-                it is Marker && it.position.latitude == latitude && it.position.longitude == longitude
-            } as? Marker
-
-            marker?.showInfoWindow()
+        } else {
+            coroutineScope.launch {
+                val location = fusedLocationClient.awaitLastLocation(context)
+                if (location != null) {
+                    val geoPoint = GeoPoint(location.latitude, location.longitude)
+                    mapView.controller.setCenter(geoPoint)
+                    mapView.controller.setZoom(15.0)
+                }
+            }
         }
     }
 
@@ -192,7 +195,6 @@ fun MapScreen(navController: NavController, lat: Double?, lon: Double?) {
         }
 
         onDispose {
-            // No es necesario hacer nada aquí porque el LaunchedEffect se encarga de eliminar la marca
         }
     }
 
@@ -267,7 +269,6 @@ suspend fun loadPosts(): List<Post> {
         post
     }
 
-    // Log the posts
     Log.d("MapScreen", "Posts: $posts")
 
     return posts
