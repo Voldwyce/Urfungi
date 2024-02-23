@@ -68,7 +68,7 @@ fun WeatherApp() {
                 )
                 IconButton(onClick = {
                     CoroutineScope(Dispatchers.IO).launch {
-                        val data = fetchWeather(city, "38c686be37de60e6ef934c32434ed3ac")
+                        val data = fetchWeather(city, "")
                         withContext(Dispatchers.Main) {
                             weatherData = data
                         }
