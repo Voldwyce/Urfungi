@@ -85,6 +85,7 @@ import com.example.urfungi.QuizJuego.HighscoresScreen
 import com.example.urfungi.QuizJuego.QuizScreenFromFirebase
 import com.example.urfungi.Recetas.RecetasSetasListScreen
 import com.example.urfungi.Restaurantes.RestaurantesSetasListScreen
+import com.example.urfungi.chat.MensajesChat
 import com.example.urfungi.ui.theme.AppTheme
 import com.google.firebase.Firebase
 import com.google.firebase.auth.FirebaseAuth
@@ -96,6 +97,7 @@ import com.google.firebase.firestore.firestore
 import org.osmdroid.config.Configuration
 import org.osmdroid.library.BuildConfig
 import java.io.IOException
+import java.net.URLEncoder
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
@@ -211,7 +213,7 @@ class MainActivity : ComponentActivity() {
 
 
                                 composable(
-                                    route = "mensajes/{usuarioId}/{username}",
+                                    route = "mensajes/{usuarioId}/{username}/{escapedUriString}",
                                     enterTransition = {
                                         slideIntoContainer(AnimatedContentTransitionScope.SlideDirection.Right)
                                     },
@@ -221,10 +223,12 @@ class MainActivity : ComponentActivity() {
                                 ) { backStackEntry ->
                                     val usuarioId = backStackEntry.arguments?.getString("usuarioId")
                                     val username = backStackEntry.arguments?.getString("username")
+                                    val foto = backStackEntry.arguments?.getString("escapedUriString")
 
-                                    if (usuarioId != null && username != null) {
+
+                                    if (usuarioId != null && username != null && foto != null) {
                                         // Aquí puedes cargar la pantalla MensajesChat con el usuario correspondiente
-                                        MensajesChat(usuarioId = usuarioId, username = username)
+                                        MensajesChat(usuarioId = usuarioId, username = username, imagen = foto)
                                     } else {
                                         // Manejar el caso en el que no se proporciona el ID del usuario o el nombre de usuario
                                         // Puedes mostrar un mensaje de error o volver a la pantalla anterior
@@ -961,7 +965,8 @@ class MainActivity : ComponentActivity() {
                             .clickable {
                                 // Navegar a la pantalla MensajesChat cuando se hace clic en el nombre de usuario
                                 // Asegúrate de tener acceso al NavController en este punto
-                                navController.navigate("mensajes/${amigo.id}/${amigo.username}")
+                                val escapedUriString = URLEncoder.encode(amigo.foto, "UTF-8")
+                                navController.navigate("mensajes/${amigo.id}/${amigo.username}/${escapedUriString}")
                             }// Padding superior al username
                     )
 
