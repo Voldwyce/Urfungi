@@ -1,7 +1,28 @@
 <resources>
-    <string name="app_name">Compose</string>
+    <string name="app_name">UrFungi</string>
 
-    <string name="destino1">Destino 1</string>
-    <string name="destino2">Destino 2</string>
-    <string name="destino3">Destino 3</string>
+    <string name="destino1">Añadir</string>
+    <string name="destino2">Mapa</string>
+    <string name="destino3">Home</string>
+    <string name="destino4">Posts</string>
+    <string name="destino5">Repo</string>
+    <string name="destinojuego">Juego</string>
+
+    <string name="title_activity_login">LoginActivity</string>
+    <string name="title_activity_maps">maps</string>
+    <string name="register_title">\n</string>
+    <string name="name">\n</string>
+    <string name="username" />
+    <string name="birthdate" />
+    <string name="email" />
+    <string name="password" />
+    <string name="title_activity_register">RegisterActivity</string>
+    <string name="Registrar_boton">Registrar</string>
+    <string name="Cancelar_boton">Cancelar</string>
+    <string name="title_activity_mis_setas">MisSetas</string>
+    <string name="title_activity_mapa">Mapa</string>
+    <string name="title_activity_posts">Posts</string>
+    <string name="maps">Mapas</string>
+    <string name="posts">Setas</string>
+    <string name="default_web_client_id">1062316024475-3vfn2m8qvhaskdk1iv6h9b7vekfcd94j.apps.googleusercontent.com</string>
 </resources>
