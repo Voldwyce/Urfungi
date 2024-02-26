@@ -314,7 +314,7 @@ class MainActivity : ComponentActivity() {
                                                 .fillMaxSize()
                                                 .padding(top = paddingValues.calculateTopPadding())
                                         ) {
-                                           AllPostsScreen()
+                                            AllPostsScreen()
                                         }
                                     }
                                 }
@@ -903,7 +903,12 @@ class MainActivity : ComponentActivity() {
 
 
     @Composable
-    fun AmigoCard(amigo: usuarios, isExploring: Boolean, onAddClick: (String) -> Unit, navController: NavController) {
+    fun AmigoCard(
+        amigo: usuarios,
+        isExploring: Boolean,
+        onAddClick: (String) -> Unit,
+        navController: NavController
+    ) {
         Card(
             modifier = Modifier
                 .fillMaxWidth()
@@ -1018,34 +1023,33 @@ class MainActivity : ComponentActivity() {
         }
     }
 
-// Función para obtener la ubicación del restaurante desde Firebase
-fun obtenerUbicacionesRestaurantes(
-    onSuccess: (List<Pair<String, String>>) -> Unit,
-    onError: (String) -> Unit
-) {
-    try {
-        val firestore = Firebase.firestore
-        val restaurantesRef = firestore.collection("restaurantes")
-        restaurantesRef.get()
-            .addOnSuccessListener { snapshot ->
-                val ubicaciones = mutableListOf<Pair<String, String>>()
-                for (document in snapshot.documents) {
-                    val longitud = document.getString("longitud")
-                    val latitud = document.getString("latitud")
-                    if (longitud != null && latitud != null) {
-                        ubicaciones.add(Pair(longitud, latitud))
+    // Función para obtener la ubicación del restaurante desde Firebase
+    fun obtenerUbicacionesRestaurantes(
+        onSuccess: (List<Pair<String, String>>) -> Unit,
+        onError: (String) -> Unit
+    ) {
+        try {
+            val firestore = Firebase.firestore
+            val restaurantesRef = firestore.collection("restaurantes")
+            restaurantesRef.get()
+                .addOnSuccessListener { snapshot ->
+                    val ubicaciones = mutableListOf<Pair<String, String>>()
+                    for (document in snapshot.documents) {
+                        val longitud = document.getString("longitud")
+                        val latitud = document.getString("latitud")
+                        if (longitud != null && latitud != null) {
+                            ubicaciones.add(Pair(longitud, latitud))
+                        }
                     }
+                    onSuccess(ubicaciones)
                 }
-                onSuccess(ubicaciones)
-            }
-            .addOnFailureListener { exception ->
-                onError("Error al obtener las ubicaciones de los restaurantes: ${exception.message}")
-            }
-    } catch (e: Exception) {
-        onError("Error al obtener las ubicaciones de los restaurantes: ${e.message}")
+                .addOnFailureListener { exception ->
+                    onError("Error al obtener las ubicaciones de los restaurantes: ${exception.message}")
+                }
+        } catch (e: Exception) {
+            onError("Error al obtener las ubicaciones de los restaurantes: ${e.message}")
+        }
     }
-}
-
 
 
     @Composable
@@ -1276,7 +1280,11 @@ fun AllPostsScreen() {
 }
 
 @Composable
-fun PostCard(postPair: Pair<String, Post>, onLikeClick: (Pair<String, Post>) -> Unit, userUsername: String?) {
+fun PostCard(
+    postPair: Pair<String, Post>,
+    onLikeClick: (Pair<String, Post>) -> Unit,
+    userUsername: String?
+) {
     val currentUser = FirebaseAuth.getInstance().currentUser
     val isLiked = currentUser != null && postPair.second.likes.contains(currentUser.uid)
     val likesCount = postPair.second.likes.size
@@ -1454,7 +1462,8 @@ fun addComment(postId: String, comment: String) {
                 val timestamp = SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.getDefault()).format(
                     Date()
                 )
-                val cleanedComment = comment.trimStart(':') // Elimina cualquier dos puntos al principio del comentario
+                val cleanedComment =
+                    comment.trimStart(':') // Elimina cualquier dos puntos al principio del comentario
                 val fullComment = "$username: $cleanedComment at $timestamp"
                 postRef.update("comentarios", FieldValue.arrayUnion(fullComment))
             }
