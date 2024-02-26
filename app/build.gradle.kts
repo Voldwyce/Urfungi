@@ -83,9 +83,9 @@ dependencies {
     implementation("com.google.android.gms:play-services-location:21.1.0")
 
     // Navigation
-    implementation("androidx.navigation:navigation-common-ktx:2.7.6")
-    implementation("androidx.navigation:navigation-compose:2.7.6")
-    implementation("androidx.core:core-splashscreen:1.0.0-rc02")
+    implementation("androidx.navigation:navigation-common-ktx:2.7.7")
+    implementation("androidx.navigation:navigation-compose:2.7.7")
+    implementation("androidx.core:core-splashscreen:1.0.1")
 
 
     // Datastore

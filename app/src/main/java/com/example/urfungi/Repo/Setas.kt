@@ -1,4 +1,4 @@
-package com.example.urfungi
+package com.example.urfungi.Repo
 
 data class Setas(
     val id: String = "",

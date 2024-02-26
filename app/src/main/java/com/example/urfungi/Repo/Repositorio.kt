@@ -1,4 +1,4 @@
-package com.example.urfungi
+package com.example.urfungi.Repo
 
 import androidx.compose.foundation.layout.*
 import androidx.compose.material3.Button
@@ -28,7 +28,6 @@ fun Repositorio(navController: NavController) {
             colors = ButtonDefaults.buttonColors(
                 containerColor = Color.Black.copy(alpha = 0.5f), contentColor = Color.White
             ),
-            shape = RectangleShape
         ) {
             Text(
                 "Recetas",
@@ -43,7 +42,6 @@ fun Repositorio(navController: NavController) {
             colors = ButtonDefaults.buttonColors(
                 containerColor = Color.Black.copy(alpha = 0.5f), contentColor = Color.White
             ),
-            shape = RectangleShape
         ) {
             Text(
                 "Setas",
@@ -59,7 +57,6 @@ fun Repositorio(navController: NavController) {
             colors = ButtonDefaults.buttonColors(
                 containerColor = Color.Black.copy(alpha = 0.5f), contentColor = Color.White
             ),
-            shape = RectangleShape
         ) {
             Text(
                 "Restaurantes",
@@ -74,7 +71,6 @@ fun Repositorio(navController: NavController) {
             colors = ButtonDefaults.buttonColors(
                 containerColor = Color.Black.copy(alpha = 0.5f), contentColor = Color.White
             ),
-            shape = RectangleShape
         ) {
             Text(
                 "Clima",
@@ -92,7 +88,6 @@ fun Repositorio(navController: NavController) {
             colors = ButtonDefaults.buttonColors(
                 containerColor = Color.Black.copy(alpha = 0.5f), contentColor = Color.White
             ),
-            shape = RectangleShape
         ) {
             Text(
                 "Créditos",

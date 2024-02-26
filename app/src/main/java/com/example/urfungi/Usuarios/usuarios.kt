@@ -1,4 +1,4 @@
-package com.example.urfungi
+package com.example.urfungi.Usuarios
 
 data class usuarios(
     val solicitudAmistad: List<String>? = null,

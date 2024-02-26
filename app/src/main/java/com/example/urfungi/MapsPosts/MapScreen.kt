@@ -1,3 +1,5 @@
+package com.example.urfungi.MapsPosts
+
 import android.Manifest
 import android.content.Context
 import android.content.pm.PackageManager
@@ -10,7 +12,7 @@ import androidx.compose.ui.viewinterop.AndroidView
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
 import androidx.navigation.NavController
-import com.example.urfungi.Post
+import com.example.urfungi.Posts.Post
 import com.google.android.gms.location.FusedLocationProviderClient
 import com.google.android.gms.location.LocationServices
 import com.google.firebase.auth.FirebaseAuth
@@ -29,10 +31,7 @@ import org.osmdroid.views.overlay.mylocation.GpsMyLocationProvider
 import org.osmdroid.views.overlay.mylocation.MyLocationNewOverlay
 
 
-import android.graphics.Color
 import android.graphics.Bitmap
-import android.graphics.BitmapFactory
-import android.graphics.Canvas
 import android.graphics.drawable.BitmapDrawable
 import android.util.Log
 import androidx.compose.foundation.layout.Box
@@ -46,6 +45,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.example.urfungi.Restaurantes.Restaurantes
 import com.google.firebase.firestore.FirebaseFirestore
+import org.osmdroid.events.MapEventsReceiver
+import org.osmdroid.views.overlay.MapEventsOverlay
 
 
 suspend fun FusedLocationProviderClient.awaitLastLocation(context: Context) =
@@ -76,8 +77,8 @@ suspend fun FusedLocationProviderClient.awaitLastLocation(context: Context) =
 
 @Composable
 fun MapScreen(navController: NavController, lat: Double?, lon: Double?) {
-    val latitude = lat?.toDouble()
-    val longitude = lon?.toDouble()
+    val latitude = lat
+    val longitude = lon
 
     val context = LocalContext.current
     val fusedLocationClient = remember { LocationServices.getFusedLocationProviderClient(context) }
@@ -90,8 +91,9 @@ fun MapScreen(navController: NavController, lat: Double?, lon: Double?) {
         posts = loadPosts()
     }
 
-
     val mapView = rememberMapViewWithUserLocation(context, coroutineScope)
+    DrawMarkers(mapView, posts)
+
     val db = FirebaseFirestore.getInstance()
 
     // Estado para controlar la visibilidad de los marcadores
@@ -100,7 +102,6 @@ fun MapScreen(navController: NavController, lat: Double?, lon: Double?) {
     // Estado para almacenar la referencia a los marcadores de los restaurantes
     var restaurantesMarkers by remember { mutableStateOf<List<Marker>?>(null) }
 
-    DrawMarkers(mapView, posts)
     val requestPermissionLauncher = rememberLauncherForActivityResult(
         ActivityResultContracts.RequestPermission()
     ) { isGranted: Boolean ->
@@ -179,17 +180,6 @@ fun MapScreen(navController: NavController, lat: Double?, lon: Double?) {
                 Manifest.permission.ACCESS_FINE_LOCATION
             ) == PackageManager.PERMISSION_GRANTED
         ) {
-            coroutineScope.launch {
-
-                // Crea un marcador para el punto específico
-                val pointMarker = Marker(mapView).apply {
-                    position =
-                        GeoPoint(41.5632, 2.0089) // Coordenadas de Terrassa, Barcelona, España
-                    setAnchor(Marker.ANCHOR_CENTER, Marker.ANCHOR_BOTTOM)
-                    title = "Point Marker"
-                }
-                mapView.overlays.add(pointMarker)
-            }
         } else {
             requestPermissionLauncher.launch(Manifest.permission.ACCESS_FINE_LOCATION)
         }
@@ -244,7 +234,6 @@ fun rememberMapViewWithUserLocation(
         MapView(context).apply {
             setTileSource(TileSourceFactory.MAPNIK)
 
-            // Crea un nuevo MyLocationNewOverlay y lo añade al mapa
             val myLocationOverlay = MyLocationNewOverlay(GpsMyLocationProvider(context), this)
             myLocationOverlay.enableMyLocation()
             overlays.add(myLocationOverlay)
@@ -276,6 +265,13 @@ suspend fun loadPosts(): List<Post> {
 
 @Composable
 fun DrawMarkers(mapView: MapView, posts: List<Post>) {
+    val context = LocalContext.current
+    val mushroomDrawable = ContextCompat.getDrawable(context, R.drawable.mushroom)
+    val mushroomBitmap = (mushroomDrawable as BitmapDrawable).bitmap
+
+    val iconWidth = mushroomBitmap.width
+    val iconHeight = mushroomBitmap.height
+
     posts.forEach { post ->
         try {
             val cordenadas = post.cordenadas.split(",")
@@ -286,9 +282,18 @@ fun DrawMarkers(mapView: MapView, posts: List<Post>) {
 
             val geoPoint = GeoPoint(latitud, longitud)
             val marker = Marker(mapView).apply {
-                position = geoPoint
+                position = GeoPoint(latitud, longitud + 0.0001) // Ajusta la posición vertical del marcador
                 title = post.titulo
                 subDescription = "${post.descripcion}\n\n${post.fecha}"
+                icon = BitmapDrawable(
+                    Bitmap.createScaledBitmap(
+                        mushroomBitmap,
+                        iconWidth / 8,
+                        iconHeight / 8,
+                        false
+                    )
+                )
+                setAnchor(0.5f, 1.0f) // Anchor point at the bottom center of the icon
             }
             mapView.overlays.add(marker)
 
