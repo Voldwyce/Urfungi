@@ -1,6 +1,7 @@
 package com.example.urfungi.MapsPosts
 
 import android.Manifest
+import android.annotation.SuppressLint
 import android.content.Context
 import android.content.pm.PackageManager
 import androidx.activity.compose.rememberLauncherForActivityResult
@@ -36,17 +37,20 @@ import android.graphics.drawable.BitmapDrawable
 import android.util.Log
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Text
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
+import com.example.urfungi.R.drawable.mushroom
 import com.example.urfungi.Restaurantes.Restaurantes
 import com.google.firebase.firestore.FirebaseFirestore
-import org.osmdroid.events.MapEventsReceiver
-import org.osmdroid.views.overlay.MapEventsOverlay
 
 
 suspend fun FusedLocationProviderClient.awaitLastLocation(context: Context) =
@@ -143,6 +147,8 @@ fun MapScreen(navController: NavController, lat: Double?, lon: Double?) {
                 }
             }
         }
+        Log.d("MapScreen", "Map center: ${mapView.mapCenter.latitude}, ${mapView.mapCenter.longitude}")
+        Log.d("MapScreen", "Map zoom level: ${mapView.zoomLevelDouble}")
     }
 
     DisposableEffect(Unit) {
@@ -198,7 +204,11 @@ fun MapScreen(navController: NavController, lat: Double?, lon: Double?) {
         Button(
             onClick = { toggleMarkersVisibility() },
             modifier = Modifier
-                .size(120.dp, 50.dp)
+                .width(150.dp)
+                .height(50.dp),
+            colors = ButtonDefaults.buttonColors(
+                containerColor = Color.Black.copy(alpha = 0.5f), contentColor = Color.White
+            )
         ) {
             Text(if (mostrarMarcadores) "Ocultar Restaurantes" else "Mostrar Restaurantes")
         }
@@ -258,19 +268,19 @@ suspend fun loadPosts(): List<Post> {
         post
     }
 
-    Log.d("MapScreen", "Posts: $posts")
+    Log.d("loadPosts", "Posts: $posts")
 
     return posts
 }
-
+@SuppressLint("UseCompatLoadingForDrawables")
 @Composable
 fun DrawMarkers(mapView: MapView, posts: List<Post>) {
     val context = LocalContext.current
-    val mushroomDrawable = ContextCompat.getDrawable(context, R.drawable.mushroom)
-    val mushroomBitmap = (mushroomDrawable as BitmapDrawable).bitmap
-
-    val iconWidth = mushroomBitmap.width
-    val iconHeight = mushroomBitmap.height
+    val mushroomDrawable = ContextCompat.getDrawable(context, mushroom)
+    if (mushroomDrawable == null) {
+        Log.e("DrawMarkers", "Error loading marker icon")
+        return
+    }
 
     posts.forEach { post ->
         try {
@@ -278,29 +288,19 @@ fun DrawMarkers(mapView: MapView, posts: List<Post>) {
             val latitud = cordenadas[0].trim().toDouble()
             val longitud = cordenadas[1].trim().toDouble()
 
-            Log.d("MapScreen", "Latitud: $latitud, Longitud: $longitud")
+            Log.d("DrawMarkers", "Marker coordinates: latitud = $latitud, longitud = $longitud")
 
-            val geoPoint = GeoPoint(latitud, longitud)
             val marker = Marker(mapView).apply {
-                position = GeoPoint(latitud, longitud + 0.0001) // Ajusta la posición vertical del marcador
+                position = GeoPoint(latitud, longitud)
                 title = post.titulo
                 subDescription = "${post.descripcion}\n\n${post.fecha}"
-                icon = BitmapDrawable(
-                    Bitmap.createScaledBitmap(
-                        mushroomBitmap,
-                        iconWidth / 8,
-                        iconHeight / 8,
-                        false
-                    )
-                )
-                setAnchor(0.5f, 1.0f) // Anchor point at the bottom center of the icon
             }
+
             mapView.overlays.add(marker)
 
-            Log.d("MapScreen", "Marker added: ${marker.position.latitude}, ${marker.position.longitude}, ${marker.title}")
+            Log.d("DrawMarkers", "Marker added: ${marker.position.latitude}, ${marker.position.longitude}, ${marker.title}")
         } catch (e: Exception) {
-            // Log the exception
-            Log.e("MapScreen", "Error creating marker for post: ${post.id}", e)
+            Log.e("DrawMarkers", "Error creating marker for post: ${post.id}", e)
         }
     }
 }
