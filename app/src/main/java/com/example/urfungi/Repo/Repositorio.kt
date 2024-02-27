@@ -1,4 +1,4 @@
-package com.example.urfungi
+package com.example.urfungi.Repo
 
 import androidx.compose.foundation.layout.*
 import androidx.compose.material3.Button

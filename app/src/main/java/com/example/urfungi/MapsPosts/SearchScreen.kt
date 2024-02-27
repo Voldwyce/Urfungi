@@ -1,4 +1,4 @@
-package com.example.urfungi
+package com.example.urfungi.MapsPosts
 
 import android.Manifest
 import android.content.ContentValues.TAG
@@ -64,13 +64,14 @@ import androidx.core.content.FileProvider
 import androidx.core.net.toFile
 import androidx.lifecycle.lifecycleScope
 import coil.compose.rememberImagePainter
+import com.example.urfungi.Posts.Post
+import com.example.urfungi.Repo.Setas
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.storage.FirebaseStorage
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.tasks.await
 import kotlinx.coroutines.withContext
-import java.io.FileInputStream
 
 @Composable
 fun SearchScreen() {

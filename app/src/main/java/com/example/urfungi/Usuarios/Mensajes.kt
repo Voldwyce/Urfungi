@@ -1,4 +1,4 @@
-package com.example.urfungi.chat
+package com.example.urfungi.Usuarios
 
 data class Mensajes (
     val id: String? = "",

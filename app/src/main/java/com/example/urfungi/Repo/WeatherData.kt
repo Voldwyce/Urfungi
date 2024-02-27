@@ -1,4 +1,4 @@
-package com.example.urfungi
+package com.example.urfungi.Repo
 
 data class WeatherData(
  val temperature: Double,
