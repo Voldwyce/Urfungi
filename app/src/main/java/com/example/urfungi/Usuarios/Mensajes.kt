@@ -5,5 +5,6 @@ data class Mensajes (
     val idchat: String? = "",
     val Fecha: String? = "",
     val mensaje: String? = "",
-    val usuarioMensaje: String? = ""
+    val usuarioMensaje: String? = "",
+    val visto: Boolean = false
 )
