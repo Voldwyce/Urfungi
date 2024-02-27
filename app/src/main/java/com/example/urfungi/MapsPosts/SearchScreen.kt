@@ -57,7 +57,6 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.platform.LocalLifecycleOwner
 import androidx.core.app.ActivityCompat
 import androidx.core.content.FileProvider
@@ -337,7 +336,6 @@ fun MushroomForm(
                     colors = ButtonDefaults.buttonColors(
                         containerColor = Color.Black.copy(alpha = 0.5f), contentColor = Color.White
                     ),
-                    shape = RectangleShape
                 ) {
                     Text(mushroomType.ifEmpty { "Tipo de seta" })
                 }
@@ -354,7 +352,6 @@ fun MushroomForm(
                     colors = ButtonDefaults.buttonColors(
                         containerColor = Color.Black.copy(alpha = 0.5f), contentColor = Color.White
                     ),
-                    shape = RectangleShape
                 ) {
                     Text("Camara")
                 }
@@ -417,12 +414,11 @@ fun MushroomForm(
                 colors = ButtonDefaults.buttonColors(
                     containerColor = Color.Black.copy(alpha = 0.5f), contentColor = Color.White
                 ),
-                shape = RectangleShape
             ) {
                 Text(if (privacidad.isBlank()) "Privacidad" else privacidad)
             }
 
-            Spacer(modifier = Modifier.height(16.dp))
+            Spacer(modifier = Modifier.height(26.dp))
 
             Button(
                 onClick = {
@@ -481,7 +477,10 @@ fun MushroomForm(
                             Log.e(TAG, "photoFile es null")
                         }
                     }
-                }, modifier = Modifier.fillMaxWidth(), colors = ButtonDefaults.buttonColors(
+                },     modifier = Modifier
+                    .width(200.dp)
+                    .height(50.dp),
+                colors = ButtonDefaults.buttonColors(
                     containerColor = Color.Black.copy(alpha = 0.5f), contentColor = Color.White
                 )
             ) {

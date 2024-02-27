@@ -166,7 +166,7 @@ fun UserPostsContent(
                 onPostDeleted = onPostDeleted,
                 onPostUpdated = onPostUpdated,
                 currentUser = FirebaseAuth.getInstance().currentUser,
-                navigateToMap = { lat, lon -> navigateToMap(navController, lat, lon) }
+                navController = navController
             )
         }
     }
@@ -179,8 +179,7 @@ fun UserPostItem(
     onPostDeleted: () -> Unit,
     onPostUpdated: () -> Unit,
     currentUser: FirebaseUser?,
-    navigateToMap: (Double, Double) -> Unit
-
+    navController: NavController
 ) {
     var showDialog by remember { mutableStateOf(false) }
     var showDeleteConfirmationDialog by remember { mutableStateOf(false) }
@@ -355,7 +354,7 @@ fun UserPostItem(
                                                 post.id,
                                                 comment
                                             )
-                                            commentCount-- // Decrementar el contador de comentarios
+                                            commentCount--
                                         }) {
                                             Icon(
                                                 imageVector = Icons.Default.Delete,
@@ -441,14 +440,18 @@ fun UserPostItem(
                 },
                 confirmButton = {
                     Row {
-                        val coordinates = post.cordenadas.split(", ")
-                        val latitud = coordinates[0].toDouble()
-                        val longitud = coordinates[1].toDouble()
-
-                        IconButton(onClick = { navigateToMap(latitud, longitud) }) {
+                        IconButton(
+                            onClick = {
+                                val cordenadas = post.cordenadas.split(",")
+                                val latitud = cordenadas[0].trim().toDouble()
+                                val longitud = cordenadas[1].trim().toDouble()
+                                Log.d("UserPostItem", "Latitud: $latitud, Longitud: $longitud")
+                                navController.navigate("mapScreen/${latitud}/${longitud}")                            },
+                            modifier = Modifier.align(Alignment.CenterVertically)
+                        ) {
                             Icon(
                                 imageVector = Icons.Default.Map,
-                                contentDescription = "Mapa",
+                                contentDescription = "Map Button",
                                 tint = Color.Gray
                             )
                         }
@@ -488,7 +491,6 @@ fun UserPostItem(
                                 .delete()
                                 .addOnSuccessListener {
                                     Log.d("Post", "DocumentSnapshot successfully deleted!")
-                                    // Recargar los posts
                                     onPostDeleted()
                                 }
                                 .addOnFailureListener { e ->

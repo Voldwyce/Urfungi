@@ -22,8 +22,10 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.example.urfungi.R
 import io.ktor.client.*
 import io.ktor.client.request.*
 import kotlinx.coroutines.CoroutineScope
@@ -49,6 +51,8 @@ suspend fun fetchWeather(city: String, apiKey: String): WeatherData {
 fun WeatherApp() {
     var city by remember { mutableStateOf("") }
     var weatherData by remember { mutableStateOf<WeatherData?>(null) }
+    var errorMessage by remember { mutableStateOf<String?>(null) }
+    val apiKey = stringResource(R.string.ApiWeatherKey)
 
     Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
         Column(horizontalAlignment = Alignment.CenterHorizontally) {
@@ -66,14 +70,25 @@ fun WeatherApp() {
                 )
                 IconButton(onClick = {
                     CoroutineScope(Dispatchers.IO).launch {
-                        val data = fetchWeather(city, "YOUR_API_KEY")
-                        withContext(Dispatchers.Main) {
-                            weatherData = data
+                        try {
+                            // COgemos la api del documento apis.xml
+                            val data = fetchWeather(city, apiKey)
+                            withContext(Dispatchers.Main) {
+                                weatherData = data
+                                errorMessage = null // clear previous error message
+                            }
+                        } catch (e: Exception) {
+                            withContext(Dispatchers.Main) {
+                                errorMessage = "No se pudo encontrar la ciudad: $city"
+                            }
                         }
                     }
                 }) {
                     Icon(Icons.Filled.Send, contentDescription = "Enviar")
                 }
+            }
+            errorMessage?.let {
+                Text(text = it, color = Color.Red)
             }
             weatherData?.let {
                 WeatherScreen(it)

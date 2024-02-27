@@ -1,6 +1,6 @@
 package com.example.urfungi
 
-import MapScreen
+import com.example.urfungi.MapsPosts.MapScreen
 import android.Manifest
 import android.content.ContentValues.TAG
 import android.content.Context
@@ -38,6 +38,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
@@ -261,17 +262,16 @@ class MainActivity : ComponentActivity() {
                                 }
 
                                 composable(
-                                    route = "mapScreen/{lat}/{lon}",
+                                    "mapScreen/{lat}/{lon}",
                                     arguments = listOf(
                                         navArgument("lat") { type = NavType.FloatType },
                                         navArgument("lon") { type = NavType.FloatType }
                                     )
                                 ) { backStackEntry ->
-                                    val lat = backStackEntry.arguments?.getDouble("lat")
-                                    val lon = backStackEntry.arguments?.getDouble("lon")
+                                    val lat = backStackEntry.arguments?.getFloat("lat")?.toDouble()
+                                    val lon = backStackEntry.arguments?.getFloat("lon")?.toDouble()
                                     MapScreen(navController, lat, lon)
                                 }
-
                                 composable(
                                     route = Destino.Destino3.ruta,
                                     enterTransition = {
@@ -326,7 +326,7 @@ class MainActivity : ComponentActivity() {
                                                 .fillMaxSize()
                                                 .padding(top = paddingValues.calculateTopPadding())
                                         ) {
-                                           AllPostsScreen()
+                                            AllPostsScreen()
                                         }
                                     }
                                 }
@@ -795,28 +795,43 @@ class MainActivity : ComponentActivity() {
                 horizontalArrangement = Arrangement.SpaceBetween
             ) {
                 Button(
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = Color.Black.copy(alpha = 0.5f), contentColor = Color.White
+                    ),
                     onClick = {
                         listaActual = explorar
                     },
-                    modifier = Modifier.weight(1f)
+                    modifier = Modifier
+                        .weight(1f)
+                        .padding(end = 8.dp)
                 ) {
                     Text("Explorar")
                 }
 
                 Button(
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = Color.Black.copy(alpha = 0.5f), contentColor = Color.White
+                    ),
                     onClick = {
                         listaActual = amigos
                     },
-                    modifier = Modifier.weight(1f)
+                    modifier = Modifier
+                        .weight(1f)
+                        .padding(end = 8.dp)
                 ) {
                     Text("Amigos")
                 }
 
                 Button(
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = Color.Black.copy(alpha = 0.5f), contentColor = Color.White
+                    ),
                     onClick = {
                         listaActual = solicitudes
                     },
-                    modifier = Modifier.weight(1f)
+                    modifier = Modifier
+                        .weight(1f)
+                        .padding(end = 8.dp)
                 ) {
                     Text("Solicitud")
                 }
@@ -831,19 +846,29 @@ class MainActivity : ComponentActivity() {
                 horizontalArrangement = Arrangement.SpaceBetween
             ) {
                 Button(
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = Color.Black.copy(alpha = 0.5f), contentColor = Color.White
+                    ),
                     onClick = {
                         listaActual = amigos
                         clicUsuario = true
                     },
-                    modifier = Modifier.weight(1f)
+                    modifier = Modifier
+                        .weight(1f)
+                        .padding(end = 8.dp)
                 ) {
                     Text("Chat")
                 }
 
                 Button(
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = Color.Black.copy(alpha = 0.5f), contentColor = Color.White
+                    ),
                     onClick = {
                     },
-                    modifier = Modifier.weight(1f)
+                    modifier = Modifier
+                        .weight(1f)
+                        .padding(end = 8.dp)
                 ) {
                     Text("Grupos")
                 }
@@ -919,7 +944,12 @@ class MainActivity : ComponentActivity() {
 
 
     @Composable
-    fun AmigoCard(amigo: usuarios, isExploring: Boolean, onAddClick: (String) -> Unit, navController: NavController) {
+    fun AmigoCard(
+        amigo: usuarios,
+        isExploring: Boolean,
+        onAddClick: (String) -> Unit,
+        navController: NavController
+    ) {
         Card(
             modifier = Modifier
                 .fillMaxWidth()
@@ -1035,34 +1065,33 @@ class MainActivity : ComponentActivity() {
         }
     }
 
-// Función para obtener la ubicación del restaurante desde Firebase
-fun obtenerUbicacionesRestaurantes(
-    onSuccess: (List<Pair<String, String>>) -> Unit,
-    onError: (String) -> Unit
-) {
-    try {
-        val firestore = Firebase.firestore
-        val restaurantesRef = firestore.collection("restaurantes")
-        restaurantesRef.get()
-            .addOnSuccessListener { snapshot ->
-                val ubicaciones = mutableListOf<Pair<String, String>>()
-                for (document in snapshot.documents) {
-                    val longitud = document.getString("longitud")
-                    val latitud = document.getString("latitud")
-                    if (longitud != null && latitud != null) {
-                        ubicaciones.add(Pair(longitud, latitud))
+    // Función para obtener la ubicación del restaurante desde Firebase
+    fun obtenerUbicacionesRestaurantes(
+        onSuccess: (List<Pair<String, String>>) -> Unit,
+        onError: (String) -> Unit
+    ) {
+        try {
+            val firestore = Firebase.firestore
+            val restaurantesRef = firestore.collection("restaurantes")
+            restaurantesRef.get()
+                .addOnSuccessListener { snapshot ->
+                    val ubicaciones = mutableListOf<Pair<String, String>>()
+                    for (document in snapshot.documents) {
+                        val longitud = document.getString("longitud")
+                        val latitud = document.getString("latitud")
+                        if (longitud != null && latitud != null) {
+                            ubicaciones.add(Pair(longitud, latitud))
+                        }
                     }
+                    onSuccess(ubicaciones)
                 }
-                onSuccess(ubicaciones)
-            }
-            .addOnFailureListener { exception ->
-                onError("Error al obtener las ubicaciones de los restaurantes: ${exception.message}")
-            }
-    } catch (e: Exception) {
-        onError("Error al obtener las ubicaciones de los restaurantes: ${e.message}")
+                .addOnFailureListener { exception ->
+                    onError("Error al obtener las ubicaciones de los restaurantes: ${exception.message}")
+                }
+        } catch (e: Exception) {
+            onError("Error al obtener las ubicaciones de los restaurantes: ${e.message}")
+        }
     }
-}
-
 
 
     @Composable
@@ -1293,7 +1322,11 @@ fun AllPostsScreen() {
 }
 
 @Composable
-fun PostCard(postPair: Pair<String, Post>, onLikeClick: (Pair<String, Post>) -> Unit, userUsername: String?) {
+fun PostCard(
+    postPair: Pair<String, Post>,
+    onLikeClick: (Pair<String, Post>) -> Unit,
+    userUsername: String?
+) {
     val currentUser = FirebaseAuth.getInstance().currentUser
     val isLiked = currentUser != null && postPair.second.likes.contains(currentUser.uid)
     val likesCount = postPair.second.likes.size
@@ -1471,7 +1504,8 @@ fun addComment(postId: String, comment: String) {
                 val timestamp = SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.getDefault()).format(
                     Date()
                 )
-                val cleanedComment = comment.trimStart(':') // Elimina cualquier dos puntos al principio del comentario
+                val cleanedComment =
+                    comment.trimStart(':') // Elimina cualquier dos puntos al principio del comentario
                 val fullComment = "$username: $cleanedComment at $timestamp"
                 postRef.update("comentarios", FieldValue.arrayUnion(fullComment))
             }
