@@ -82,6 +82,7 @@ import com.bumptech.glide.Glide
 import com.bumptech.glide.load.resource.bitmap.CircleCrop
 import com.example.urfungi.Curiosidades.SetasListScreen
 import com.example.urfungi.QuizJuego.HighscoresScreen
+import com.example.urfungi.QuizJuego.QuizPostScreen
 import com.example.urfungi.QuizJuego.QuizScreenFromFirebase
 import com.example.urfungi.Recetas.RecetasSetasListScreen
 import com.example.urfungi.Restaurantes.RestaurantesSetasListScreen
@@ -418,12 +419,18 @@ class MainActivity : ComponentActivity() {
                                         contentAlignment = Alignment.Center
                                     ) {
                                         QuizScreenFromFirebase(
-                                            onHighscoresClicked = { navController.navigate("highscores") }
+                                            onHighscoresClicked = { navController.navigate("highscores") },
+                                            onQuizPostsClicked = { navController.navigate("quizPosts") }
+
                                         )
                                     }
                                 }
                                 composable("highscores") {
                                     HighscoresScreen()
+                                }
+
+                                composable("quizPosts") {
+                                    QuizPostScreen()
                                 }
                             }
                         }

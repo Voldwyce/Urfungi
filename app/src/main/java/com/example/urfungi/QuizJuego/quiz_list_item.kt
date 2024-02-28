@@ -11,9 +11,15 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.List
+import androidx.compose.material.icons.filled.Person
+import androidx.compose.material.icons.filled.PostAdd
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
@@ -50,12 +56,16 @@ import java.util.Date
 import java.util.Locale
 import kotlin.random.Random
 import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.OutlinedTextField
+import java.util.TimeZone
+
 enum class DifficultyLevel {
     EASY, INTERMEDIATE, HARD
 }
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun QuizScreenFromFirebase(onHighscoresClicked: () -> Unit) {
+fun QuizScreenFromFirebase(onHighscoresClicked: () -> Unit, onQuizPostsClicked: () -> Unit) {
     var difficultyLevel by remember { mutableStateOf<DifficultyLevel?>(null) }
 
     if (difficultyLevel == null) {
@@ -124,7 +134,8 @@ fun QuizScreenFromFirebase(onHighscoresClicked: () -> Unit) {
                 setas = shuffledSetas.toSortedMap().values.flatten()
 
                 val userDocument =
-                    firestore.collection("usuarios").document(auth.currentUser?.uid ?: "").get().await()
+                    firestore.collection("usuarios").document(auth.currentUser?.uid ?: "").get()
+                        .await()
                 val recordFromDatabase = userDocument.get("record") as? Long
                 if (recordFromDatabase != null) {
                     userRecord = recordFromDatabase.toInt()
@@ -192,11 +203,19 @@ fun QuizScreenFromFirebase(onHighscoresClicked: () -> Unit) {
                                         )
                                     }
                                     .addOnFailureListener { e ->
-                                        Log.w("QuizRecord", "Error al guardar el registro del quiz", e)
+                                        Log.w(
+                                            "QuizRecord",
+                                            "Error al guardar el registro del quiz",
+                                            e
+                                        )
                                     }
                             }
                         } else {
-                            Log.w("QuizRecord", "Error al obtener registros del quiz", task.exception)
+                            Log.w(
+                                "QuizRecord",
+                                "Error al obtener registros del quiz",
+                                task.exception
+                            )
                         }
                     }
             }
@@ -227,11 +246,10 @@ fun QuizScreenFromFirebase(onHighscoresClicked: () -> Unit) {
 
             GameOverScreen(
                 score = finalScore,
-                onRestartClicked = {
-                    restartGame()
-                },
-                onShuffleSetas = {
-                    setas = setas.shuffled()
+                onRestartClicked = { restartGame() },
+                onShuffleSetas = { setas = setas.shuffled() },
+                onPublishClicked = { quizPost ->
+                    saveQuizPost(quizPost)
                 }
             )
 
@@ -263,6 +281,12 @@ fun QuizScreenFromFirebase(onHighscoresClicked: () -> Unit) {
                             onClick = { onHighscoresClicked() }
                         ) {
                             Icon(Icons.Filled.List, contentDescription = "Highscores")
+                        }
+
+                        IconButton(
+                            onClick = { onQuizPostsClicked() } // Navega a la pantalla de publicaciones del quiz al hacer clic en el ícono
+                        ) {
+                            Icon(Icons.Filled.PostAdd, contentDescription = "quizPosts")
                         }
                     }
 
@@ -344,6 +368,126 @@ fun QuizScreenFromFirebase(onHighscoresClicked: () -> Unit) {
     }
 }
 
+fun saveQuizPost(quizPost: QuizPost) {
+    val firestore = FirebaseFirestore.getInstance()
+
+    firestore.collection("QuizPosts")
+        .add(quizPost)
+        .addOnSuccessListener { documentReference ->
+            Log.d("QuizPost", "Quiz post guardado con ID: ${documentReference.id}")
+        }
+        .addOnFailureListener { e ->
+            Log.w("QuizPost", "Error al guardar el post del quiz", e)
+        }
+}
+
+@Composable
+fun QuizPostScreen() {
+    var quizPosts by remember { mutableStateOf<List<QuizPost>>(emptyList()) }
+
+    LaunchedEffect(Unit) {
+        quizPosts = getQuizPostsFromDatabase()
+    }
+
+    Column(
+        modifier = Modifier.fillMaxSize(),
+        verticalArrangement = Arrangement.Center,
+        horizontalAlignment = Alignment.CenterHorizontally
+    ) {
+        Text(
+            text = "Publicaciones de Quiz 🥵",
+            fontSize = 24.sp,
+            fontWeight = FontWeight.Bold,
+            modifier = Modifier.padding(bottom = 16.dp, top = 50.dp)
+        )
+
+        LazyColumn(
+            modifier = Modifier.fillMaxSize()
+        ) {
+            items(quizPosts) { quizPost ->
+                QuizPostItem(quizPost = quizPost)
+                Spacer(modifier = Modifier.height(5.dp)) // Agregar espacio entre las publicaciones
+            }
+        }
+    }
+}
+suspend fun getQuizPostsFromDatabase(): List<QuizPost> {
+    val firestore = FirebaseFirestore.getInstance()
+    val quizPosts = mutableListOf<QuizPost>()
+    try {
+        val querySnapshot = firestore.collection("QuizPosts").get().await()
+        for (document in querySnapshot.documents) {
+            val userId = document.getString("userId") ?: ""
+            val score = document.getLong("score")?.toInt() ?: 0
+            val comment = document.getString("comment") ?: ""
+            val quizPost = QuizPost(userId = userId, score = score, comment = comment)
+            quizPosts.add(quizPost)
+        }
+    } catch (e: Exception) {
+        Log.e("getQuizPostsFromDatabase", "Error getting quiz posts", e)
+    }
+    return quizPosts
+}
+
+@Composable
+fun QuizPostItem(quizPost: QuizPost) {
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(16.dp),
+        shape = RoundedCornerShape(8.dp) // Redondear las esquinas del card
+    ) {
+        Column(
+            modifier = Modifier.padding(16.dp)
+        ) {
+            val userName = remember { mutableStateOf("") }
+
+            LaunchedEffect(Unit) {
+                userName.value = getUserName(quizPost.userId)
+            }
+
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Icon(
+                    imageVector = Icons.Default.Person,
+                    contentDescription = "Usuario",
+                    modifier = Modifier.size(24.dp)
+                )
+                Spacer(modifier = Modifier.width(8.dp))
+                Text(
+                    text = "Usuario: ${userName.value}",
+                    fontSize = 16.sp,
+                    fontWeight = FontWeight.Bold
+                )
+            }
+            Spacer(modifier = Modifier.height(8.dp))
+            Text(
+                text = "Puntuación: ${quizPost.score}",
+                fontSize = 16.sp
+            )
+            Spacer(modifier = Modifier.height(4.dp))
+            Text(
+                text = "Comentario: ${quizPost.comment}",
+                fontSize = 14.sp
+            )
+        }
+    }
+}
+
+
+suspend fun getUserName(userId: String): String {
+    val firestore = FirebaseFirestore.getInstance()
+    var userName = ""
+    try {
+        val userDocument = firestore.collection("usuarios").document(userId).get().await()
+        userName = userDocument.getString("username") ?: ""
+    } catch (e: Exception) {
+        Log.e("getUserName", "Error getting user name", e)
+    }
+    return userName
+}
 @Composable
 fun ChooseDifficultyDialog(onDifficultySelected: (DifficultyLevel) -> Unit) {
     val dialogDismissed = remember { mutableStateOf(false) }
@@ -356,7 +500,9 @@ fun ChooseDifficultyDialog(onDifficultySelected: (DifficultyLevel) -> Unit) {
             title = { Text("Selecciona un nivel de dificultad") },
             confirmButton = {
                 Column(
-                    modifier = Modifier.fillMaxWidth().padding(horizontal = 80.dp)
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 80.dp)
                 ) {
                     Button(
                         onClick = {
@@ -393,7 +539,17 @@ fun ChooseDifficultyDialog(onDifficultySelected: (DifficultyLevel) -> Unit) {
 
 
 @Composable
-fun GameOverScreen(score: Int, onRestartClicked: () -> Unit, onShuffleSetas: () -> Unit) {
+fun GameOverScreen(
+    score: Int,
+    onRestartClicked: () -> Unit,
+    onShuffleSetas: () -> Unit,
+    onPublishClicked: (QuizPost) -> Unit
+) {
+
+    var comment by remember { mutableStateOf("") }
+    var showDialog by remember { mutableStateOf(false) }
+
+
     // Pantalla de juego terminado
     Column(
         modifier = Modifier
@@ -443,6 +599,60 @@ fun GameOverScreen(score: Int, onRestartClicked: () -> Unit, onShuffleSetas: () 
                 .fillMaxWidth(0.5f)
         ) {
             Text(text = "Volver a jugar")
+        }
+
+        // Botón para publicar puntuación
+        Button(
+            onClick = { showDialog = true },
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(vertical = 16.dp)
+        ) {
+            Text(text = "Publicar puntuación")
+        }
+
+        // Cuadro de diálogo para ingresar el comentario
+        if (showDialog) {
+            AlertDialog(
+                onDismissRequest = { showDialog = false },
+                title = { Text("Publicar puntuación") },
+                text = {
+                    Column {
+                        Text("Ingresa tu comentario:")
+                        OutlinedTextField(
+                            value = comment,
+                            onValueChange = { comment = it },
+                            modifier = Modifier.fillMaxWidth(),
+                        )
+                    }
+                },
+                confirmButton = {
+                    Button(
+                        onClick = {
+                            // Crear el objeto QuizPost y llamar a la función de callback
+                            val currentUser = FirebaseAuth.getInstance().currentUser
+                            if (currentUser != null) {
+                                val quizPost = QuizPost(
+                                    userId = currentUser.uid,
+                                    score = score,
+                                    comment = comment
+                                )
+                                onPublishClicked(quizPost)
+                                showDialog = false
+                            }
+                        }
+                    ) {
+                        Text("Publicar")
+                    }
+                },
+                dismissButton = {
+                    Button(
+                        onClick = { showDialog = false }
+                    ) {
+                        Text("Cancelar")
+                    }
+                }
+            )
         }
     }
 }
@@ -500,6 +710,7 @@ suspend fun getTopRecordsFromDatabase(
 
             HighscoreFilter.TODAY_TOP -> {
                 // Obtener la fecha de inicio del día actual
+
                 val startOfDay = Calendar.getInstance().apply {
                     set(Calendar.HOUR_OF_DAY, 0)
                     set(Calendar.MINUTE, 0)
@@ -535,7 +746,6 @@ suspend fun getTopRecordsFromDatabase(
     }
     return recordsList
 }
-
 
 
 @Composable
