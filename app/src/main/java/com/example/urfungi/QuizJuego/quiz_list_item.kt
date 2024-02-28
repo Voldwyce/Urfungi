@@ -709,27 +709,12 @@ suspend fun getTopRecordsFromDatabase(
             }
 
             HighscoreFilter.TODAY_TOP -> {
-                // Obtener la fecha de inicio del día actual
+                // Obtener la fecha actual en formato de cadena "yyyy-MM-dd"
+                val currentDate = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).format(Date())
 
-                val startOfDay = Calendar.getInstance().apply {
-                    set(Calendar.HOUR_OF_DAY, 0)
-                    set(Calendar.MINUTE, 0)
-                    set(Calendar.SECOND, 0)
-                    set(Calendar.MILLISECOND, 0)
-                }.time
-
-                // Obtener la fecha de finalización del día actual
-                val endOfDay = Calendar.getInstance().apply {
-                    set(Calendar.HOUR_OF_DAY, 23)
-                    set(Calendar.MINUTE, 59)
-                    set(Calendar.SECOND, 59)
-                    set(Calendar.MILLISECOND, 999)
-                }.time
-
-                // Consultar la colección de "RegistrosQuiz" para el rango de fechas del día actual
+                // Consultar la colección de "RegistrosQuiz" para obtener los registros del día actual
                 val querySnapshot = firestore.collection("RegistrosQuiz")
-                    .whereGreaterThanOrEqualTo("fecha", startOfDay)
-                    .whereLessThanOrEqualTo("fecha", endOfDay)
+                    .whereEqualTo("fecha", currentDate) // Filtrar por la fecha actual
                     .orderBy("score", Query.Direction.DESCENDING)
                     .limit(limit.toLong())
                     .get()
