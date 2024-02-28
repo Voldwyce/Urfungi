@@ -3,6 +3,7 @@ package com.example.urfungi.QuizJuego
 import android.os.CountDownTimer
 import android.util.Log
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -14,6 +15,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.List
 import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
@@ -29,217 +31,310 @@ import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import coil.compose.AsyncImage
 import com.example.urfungi.Setas
+import com.google.firebase.Timestamp
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.Query
+import com.google.firebase.firestore.toObject
 import kotlinx.coroutines.tasks.await
+import java.text.SimpleDateFormat
+import java.util.Calendar
+import java.util.Date
+import java.util.Locale
 import kotlin.random.Random
-
-
+import androidx.compose.material3.AlertDialog
+enum class DifficultyLevel {
+    EASY, INTERMEDIATE, HARD
+}
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun QuizScreenFromFirebase(onHighscoresClicked: () -> Unit) {
-    // Declaración de variables de estado para el juego
-    var setas by remember { mutableStateOf<List<Setas>>(emptyList()) }
-    var currentQuestionIndex by remember { mutableStateOf(0) }
-    var isGameOver by remember { mutableStateOf(false) }
-    var currentSetaName by remember { mutableStateOf("") }
-    var userRecord by remember { mutableStateOf(0) }
-    var score by remember { mutableStateOf(0) }
-    var remainingTime by remember { mutableStateOf(30) }
+    var difficultyLevel by remember { mutableStateOf<DifficultyLevel?>(null) }
 
-    val firestore = FirebaseFirestore.getInstance()
-    val auth = FirebaseAuth.getInstance()
-
-    var timer: CountDownTimer? by remember { mutableStateOf(null) }
-
-    // Función para inicializar el temporizador
-    fun initializeTimer() {
-        timer?.cancel()
-        timer = object : CountDownTimer(remainingTime * 1000L, 1000) {
-            override fun onTick(millisUntilFinished: Long) {
-                remainingTime = (millisUntilFinished / 1000).toInt()
-            }
-
-            override fun onFinish() {
-                isGameOver = true
-            }
+    if (difficultyLevel == null) {
+        ChooseDifficultyDialog { selectedDifficulty ->
+            difficultyLevel = selectedDifficulty
         }
-    }
-
-    // Método para reiniciar el juego
-    fun restartGame() {
-        currentQuestionIndex = 0
-        isGameOver = false
-        score = 0
-        remainingTime = 30 // Reiniciar el tiempo a 30 segundos
-        initializeTimer() // Iniciar el temporizador nuevamente
-    }
-
-    DisposableEffect(Unit) {
-        initializeTimer()
-
-        onDispose {
-            timer?.cancel()
-        }
-    }
-
-    // Declaración de variable de estado para el tiempo restante
-    remainingTime = rememberUpdatedState(newValue = remainingTime).value
-
-    // Inicialización de datos
-    LaunchedEffect(Unit) {
-        try {
-            // Obtener setas desde Firestore
-            val querySnapshot = firestore.collection("setas").get().await()
-            val list = mutableListOf<Setas>()
-            for (document in querySnapshot.documents) {
-                val seta = document.toObject(Setas::class.java)
-                if (seta != null) {
-                    list.add(seta)
-                }
-            }
-
-            val groupedSetas = list.groupBy { it.Dificultad }
-            val shuffledSetas = groupedSetas.mapValues { (_, setas) -> setas.shuffled() }
-            setas = shuffledSetas.toSortedMap().values.flatten()
-
-            // Obtener el récord del usuario desde Firestore
-            val userDocument = firestore.collection("usuarios").document(auth.currentUser?.uid ?: "").get().await()
-            val recordFromDatabase = userDocument.get("record") as? Long
-            if (recordFromDatabase != null) {
-                userRecord = recordFromDatabase.toInt()
-                score = 0
-            }
-
-        } catch (e: Exception) {
-            e.printStackTrace()
-            setas = emptyList()
-        }
-    }
-
-    // Lógica del juego
-    if (isGameOver) {
-        // Manejar el juego terminado
-        val finalScore = score
-        // Actualizar récord en Firestore si es necesario
-        if (finalScore > userRecord) {
-            firestore.collection("usuarios").document(auth.currentUser?.uid ?: "").update("record", finalScore)
-                .addOnSuccessListener {
-                    userRecord = finalScore
-                }
-                .addOnFailureListener { e ->
-                    e.printStackTrace()
-                }
-        }
-        // Mostrar pantalla de juego terminado
-        GameOverScreen(
-            score = finalScore,
-            onRestartClicked = {
-                restartGame() // Reiniciar el juego
-            },
-            onShuffleSetas = {
-                setas = setas.shuffled()
-            }
-        )
     } else {
-        // Lógica del juego mientras no haya terminado
-        if (setas.isNotEmpty() && currentQuestionIndex < setas.size) {
-            val currentSeta = setas[currentQuestionIndex]
-            currentSetaName = currentSeta.Nombre
+        var setas by remember { mutableStateOf<List<Setas>>(emptyList()) }
+        var currentQuestionIndex by remember { mutableStateOf(0) }
+        var isGameOver by remember { mutableStateOf(false) }
+        var currentSetaName by remember { mutableStateOf("") }
+        var userRecord by remember { mutableStateOf(0) }
+        var score by remember { mutableStateOf(0) }
+        var remainingTime by remember { mutableStateOf(30) }
+        var quizRecordSaved by remember { mutableStateOf(false) }
+        val firestore = FirebaseFirestore.getInstance()
+        val auth = FirebaseAuth.getInstance()
 
-            // Mostrar pregunta actual y opciones de respuesta
-            Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(16.dp)
-            ) {
-                // Mostrar información del juego (puntuación, tiempo, etc.)
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween
-                ) {
-                    Text(
-                        text = "Record: $userRecord",
-                        fontSize = 18.sp,
-                        modifier = Modifier.padding(10.dp)
-                    )
+        var timer: CountDownTimer? by remember { mutableStateOf(null) }
 
-                    IconButton(
-                        onClick = { onHighscoresClicked() }
-                    ) {
-                        Icon(Icons.Filled.List, contentDescription = "Highscores")
+        fun initializeTimer() {
+            timer?.cancel()
+            timer = object : CountDownTimer(remainingTime * 1000L, 1000) {
+                override fun onTick(millisUntilFinished: Long) {
+                    remainingTime = (millisUntilFinished / 1000).toInt()
+                }
+
+                override fun onFinish() {
+                    isGameOver = true
+                }
+            }
+        }
+
+        fun restartGame() {
+            currentQuestionIndex = 0
+            isGameOver = false
+            score = 0
+            remainingTime = 30
+            initializeTimer()
+            quizRecordSaved = false
+        }
+
+        DisposableEffect(Unit) {
+            initializeTimer()
+
+            onDispose {
+                timer?.cancel()
+            }
+        }
+
+        remainingTime = rememberUpdatedState(newValue = remainingTime).value
+
+        LaunchedEffect(Unit) {
+            try {
+                val querySnapshot = firestore.collection("setas").get().await()
+                val list = mutableListOf<Setas>()
+                for (document in querySnapshot.documents) {
+                    val seta = document.toObject<Setas>()
+                    if (seta != null) {
+                        list.add(seta)
                     }
                 }
 
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween
-                ) {
-                    Text(
-                        text = "Puntuación: $score",
-                        fontSize = 18.sp,
-                        modifier = Modifier.padding(10.dp)
-                    )
+                val groupedSetas = list.groupBy { it.Dificultad }
+                val shuffledSetas = groupedSetas.mapValues { (_, setas) -> setas.shuffled() }
+                setas = shuffledSetas.toSortedMap().values.flatten()
 
-                    Text(text = "Tiempo: $remainingTime")
+                val userDocument =
+                    firestore.collection("usuarios").document(auth.currentUser?.uid ?: "").get().await()
+                val recordFromDatabase = userDocument.get("record") as? Long
+                if (recordFromDatabase != null) {
+                    userRecord = recordFromDatabase.toInt()
+                    score = 0
                 }
 
-                // Mostrar la imagen de la seta actual
-                Card(
+            } catch (e: Exception) {
+                e.printStackTrace()
+                setas = emptyList()
+            }
+        }
+
+        fun saveQuizRecord(score: Int) {
+            val currentUser = auth.currentUser
+            if (currentUser != null) {
+                val currentDate = Calendar.getInstance().apply {
+                    set(Calendar.HOUR_OF_DAY, 0)
+                    set(Calendar.MINUTE, 0)
+                    set(Calendar.SECOND, 0)
+                    set(Calendar.MILLISECOND, 0)
+                }.time
+
+                val formattedDate =
+                    SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).format(currentDate)
+
+                firestore.collection("RegistrosQuiz")
+                    .whereEqualTo("fecha", formattedDate)
+                    .whereEqualTo("idusuario", currentUser.uid)
+                    .get()
+                    .addOnCompleteListener { task ->
+                        if (task.isSuccessful) {
+                            val documents = task.result.documents
+                            if (documents.isNotEmpty()) {
+                                val existingRecord = documents[0]
+                                val existingScore = existingRecord.get("score") as? Long ?: 0
+                                val updatedScore = existingScore + score
+
+                                existingRecord.reference.update("score", updatedScore)
+                                    .addOnSuccessListener {
+                                        Log.d(
+                                            "QuizRecord",
+                                            "Registro del quiz actualizado con ID: ${existingRecord.id}"
+                                        )
+                                    }
+                                    .addOnFailureListener { e ->
+                                        Log.w(
+                                            "QuizRecord",
+                                            "Error al actualizar el registro del quiz",
+                                            e
+                                        )
+                                    }
+                            } else {
+                                val quizRecord = hashMapOf(
+                                    "fecha" to formattedDate,
+                                    "idusuario" to currentUser.uid,
+                                    "score" to score
+                                )
+
+                                firestore.collection("RegistrosQuiz")
+                                    .add(quizRecord)
+                                    .addOnSuccessListener { documentReference ->
+                                        Log.d(
+                                            "QuizRecord",
+                                            "Registro del quiz guardado con ID: ${documentReference.id}"
+                                        )
+                                    }
+                                    .addOnFailureListener { e ->
+                                        Log.w("QuizRecord", "Error al guardar el registro del quiz", e)
+                                    }
+                            }
+                        } else {
+                            Log.w("QuizRecord", "Error al obtener registros del quiz", task.exception)
+                        }
+                    }
+            }
+        }
+
+        // Definición del número de respuestas basado en la dificultad seleccionada
+        val numberOfAnswers = when (difficultyLevel) {
+            DifficultyLevel.EASY -> 1
+            DifficultyLevel.INTERMEDIATE -> 3
+            DifficultyLevel.HARD -> 4
+            else -> 3 // Valor predeterminado para cualquier otra dificultad o si no se ha seleccionado ninguna
+        }
+
+        remainingTime = rememberUpdatedState(newValue = remainingTime).value
+
+        if (isGameOver) {
+            val finalScore = score
+            if (finalScore > userRecord) {
+                firestore.collection("usuarios").document(auth.currentUser?.uid ?: "")
+                    .update("record", finalScore)
+                    .addOnSuccessListener {
+                        userRecord = finalScore
+                    }
+                    .addOnFailureListener { e ->
+                        e.printStackTrace()
+                    }
+            }
+
+            GameOverScreen(
+                score = finalScore,
+                onRestartClicked = {
+                    restartGame()
+                },
+                onShuffleSetas = {
+                    setas = setas.shuffled()
+                }
+            )
+
+            if (!quizRecordSaved) {
+                saveQuizRecord(score)
+            }
+            quizRecordSaved = true
+        } else {
+            if (setas.isNotEmpty() && currentQuestionIndex < setas.size) {
+                val currentSeta = setas[currentQuestionIndex]
+                currentSetaName = currentSeta.Nombre
+
+                Column(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(8.dp),
-                    shape = RoundedCornerShape(12.dp)
+                        .padding(16.dp)
                 ) {
-                    Column(
-                        modifier = Modifier.fillMaxWidth()
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween
                     ) {
-                        AsyncImage(
-                            model = currentSeta.Imagen,
-                            contentDescription = null,
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .height(200.dp)
-                                .padding(bottom = 16.dp),
-                            contentScale = ContentScale.Crop
+                        Text(
+                            text = "Record: $userRecord",
+                            fontSize = 18.sp,
+                            modifier = Modifier.padding(10.dp)
                         )
 
-                        // Mostrar opciones de respuesta
-                        val opcionesRespuesta = remember { mutableStateOf<List<Setas>>(emptyList()) }
-                        if (opcionesRespuesta.value.isEmpty()) {
-                            val opcionesDistintas = mutableListOf(currentSeta)
-                            opcionesDistintas.addAll(setas.filterNot { it.Nombre.replace(" ", "") == currentSeta.Nombre.replace(" ", "") }.shuffled().take(3))
-                            opcionesRespuesta.value = opcionesDistintas.shuffled()
-                            timer?.start()
+                        IconButton(
+                            onClick = { onHighscoresClicked() }
+                        ) {
+                            Icon(Icons.Filled.List, contentDescription = "Highscores")
                         }
-                        opcionesRespuesta.value.forEachIndexed { index, answer ->
-                            Button(
-                                onClick = {
-                                    if (answer.Nombre.replace(" ", "") == currentSetaName.replace(" ", "")) {
-                                        // Calcular la puntuación basada en el tiempo restante
-                                        val points = (remainingTime * 100) / 30
-                                        score += points
-                                    } else {
-                                        isGameOver = true
-                                        timer?.cancel()
-                                        timer = null
-                                    }
-                                    currentQuestionIndex++
-                                    opcionesRespuesta.value = emptyList()
-                                    remainingTime = 30
-                                },
+                    }
+
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween
+                    ) {
+                        Text(
+                            text = "Puntuación: $score",
+                            fontSize = 18.sp,
+                            modifier = Modifier.padding(10.dp)
+                        )
+
+                        Text(text = "Tiempo: $remainingTime")
+                    }
+
+                    Card(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(8.dp),
+                        shape = RoundedCornerShape(12.dp)
+                    ) {
+                        Column(
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            AsyncImage(
+                                model = currentSeta.Imagen,
+                                contentDescription = null,
                                 modifier = Modifier
                                     .fillMaxWidth()
-                                    .padding(8.dp)
-                            ) {
-                                Text(text = answer.Nombre)
+                                    .height(200.dp)
+                                    .padding(bottom = 16.dp),
+                                contentScale = ContentScale.Crop
+                            )
+                            val opcionesRespuesta =
+                                remember { mutableStateOf<List<Setas>>(emptyList()) }
+                            if (opcionesRespuesta.value.isEmpty()) {
+                                val opcionesDistintas = mutableListOf(currentSeta)
+                                opcionesDistintas.addAll(setas.filterNot {
+                                    it.Nombre.replace(
+                                        " ",
+                                        ""
+                                    ) == currentSeta.Nombre.replace(" ", "")
+                                }.shuffled().take(numberOfAnswers))
+                                opcionesRespuesta.value = opcionesDistintas.shuffled()
+                                timer?.start()
+                            }
+                            opcionesRespuesta.value.forEachIndexed { index, answer ->
+                                Button(
+                                    onClick = {
+                                        if (answer.Nombre.replace(
+                                                " ",
+                                                ""
+                                            ) == currentSetaName.replace(" ", "")
+                                        ) {
+                                            val points = (remainingTime * 100) / 30
+                                            score += points
+                                        } else {
+                                            isGameOver = true
+                                            timer?.cancel()
+                                            timer = null
+                                        }
+                                        currentQuestionIndex++
+                                        opcionesRespuesta.value = emptyList()
+                                        remainingTime = 30
+                                    },
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .padding(8.dp)
+                                ) {
+                                    Text(text = answer.Nombre)
+                                }
                             }
                         }
                     }
@@ -249,6 +344,52 @@ fun QuizScreenFromFirebase(onHighscoresClicked: () -> Unit) {
     }
 }
 
+@Composable
+fun ChooseDifficultyDialog(onDifficultySelected: (DifficultyLevel) -> Unit) {
+    val dialogDismissed = remember { mutableStateOf(false) }
+
+    if (!dialogDismissed.value) {
+        AlertDialog(
+            onDismissRequest = {
+                // No hacer nada al presionar afuera del diálogo
+            },
+            title = { Text("Selecciona un nivel de dificultad") },
+            confirmButton = {
+                Column(
+                    modifier = Modifier.fillMaxWidth().padding(horizontal = 80.dp)
+                ) {
+                    Button(
+                        onClick = {
+                            onDifficultySelected(DifficultyLevel.EASY)
+                            dialogDismissed.value = true
+                        },
+                        modifier = Modifier.fillMaxWidth() // Hacer que el botón ocupe todo el ancho disponible
+                    ) {
+                        Text("Fácil")
+                    }
+                    Button(
+                        onClick = {
+                            onDifficultySelected(DifficultyLevel.INTERMEDIATE)
+                            dialogDismissed.value = true
+                        },
+                        modifier = Modifier.fillMaxWidth() // Hacer que el botón ocupe todo el ancho disponible
+                    ) {
+                        Text("Intermedio")
+                    }
+                    Button(
+                        onClick = {
+                            onDifficultySelected(DifficultyLevel.HARD)
+                            dialogDismissed.value = true
+                        },
+                        modifier = Modifier.fillMaxWidth() // Hacer que el botón ocupe todo el ancho disponible
+                    ) {
+                        Text("Difícil")
+                    }
+                }
+            }
+        )
+    }
+}
 
 
 @Composable
@@ -330,19 +471,64 @@ fun RecordsList(recordsList: List<Pair<String, Int>>) {
     }
 }
 
-suspend fun getTopRecordsFromDatabase(limit: Int): List<Pair<String, Int>> {
+enum class HighscoreFilter {
+    CURRENT_HIGHSCORE,
+    GLOBAL_TOP_10,
+    TODAY_TOP
+}
+
+suspend fun getTopRecordsFromDatabase(
+    limit: Int,
+    filterType: HighscoreFilter
+): List<Pair<String, Int>> {
     val firestore = FirebaseFirestore.getInstance()
     val recordsList = mutableListOf<Pair<String, Int>>()
     try {
-        val querySnapshot = firestore.collection("usuarios")
-            .orderBy("record", Query.Direction.DESCENDING)
-            .limit(limit.toLong())
-            .get()
-            .await()
-        for (document in querySnapshot.documents) {
-            val username = document.getString("username") ?: "Anonymous"
-            val record = document.getLong("record")?.toInt() ?: 0
-            recordsList.add(username to record)
+        when (filterType) {
+            HighscoreFilter.CURRENT_HIGHSCORE, HighscoreFilter.GLOBAL_TOP_10 -> {
+                // Consulta la colección de "usuarios"
+                val query = firestore.collection("usuarios")
+                    .orderBy("record", Query.Direction.DESCENDING)
+                    .limit(limit.toLong())
+                val querySnapshot = query.get().await()
+                for (document in querySnapshot.documents) {
+                    val username = document.getString("username") ?: "Anonymous"
+                    val record = document.getLong("record")?.toInt() ?: 0
+                    recordsList.add(username to record)
+                }
+            }
+
+            HighscoreFilter.TODAY_TOP -> {
+                // Obtener la fecha de inicio del día actual
+                val startOfDay = Calendar.getInstance().apply {
+                    set(Calendar.HOUR_OF_DAY, 0)
+                    set(Calendar.MINUTE, 0)
+                    set(Calendar.SECOND, 0)
+                    set(Calendar.MILLISECOND, 0)
+                }.time
+
+                // Obtener la fecha de finalización del día actual
+                val endOfDay = Calendar.getInstance().apply {
+                    set(Calendar.HOUR_OF_DAY, 23)
+                    set(Calendar.MINUTE, 59)
+                    set(Calendar.SECOND, 59)
+                    set(Calendar.MILLISECOND, 999)
+                }.time
+
+                // Consultar la colección de "RegistrosQuiz" para el rango de fechas del día actual
+                val querySnapshot = firestore.collection("RegistrosQuiz")
+                    .whereGreaterThanOrEqualTo("fecha", startOfDay)
+                    .whereLessThanOrEqualTo("fecha", endOfDay)
+                    .orderBy("score", Query.Direction.DESCENDING)
+                    .limit(limit.toLong())
+                    .get()
+                    .await()
+                for (document in querySnapshot.documents) {
+                    val username = document.getString("idusuario") ?: "Anonymous"
+                    val score = document.getLong("score")?.toInt() ?: 0
+                    recordsList.add(username to score)
+                }
+            }
         }
     } catch (e: Exception) {
         Log.e("getTopRecordsFromDatabase", "Error getting top records", e)
@@ -350,14 +536,50 @@ suspend fun getTopRecordsFromDatabase(limit: Int): List<Pair<String, Int>> {
     return recordsList
 }
 
+
+
 @Composable
 fun HighscoresScreen() {
+    var filterType by remember { mutableStateOf(HighscoreFilter.CURRENT_HIGHSCORE) }
     var recordsList by remember { mutableStateOf<List<Pair<String, Int>>>(emptyList()) }
 
-    LaunchedEffect(Unit) {
-        recordsList = getTopRecordsFromDatabase(10)
+    LaunchedEffect(filterType) {
+        recordsList = getTopRecordsFromDatabase(10, filterType)
     }
 
-    RecordsList(recordsList)
+    Column(
+        modifier = Modifier.fillMaxSize(),
+        verticalArrangement = Arrangement.Center,
+        horizontalAlignment = Alignment.CenterHorizontally
+    ) {
+        Row(
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+            modifier = Modifier.padding(bottom = 16.dp)
+        ) {
+            // Botón para Mejores 10 Globalmente
+            Button(
+                onClick = { filterType = HighscoreFilter.GLOBAL_TOP_10 },
+                colors = ButtonDefaults.buttonColors(
+                    contentColor = if (filterType == HighscoreFilter.GLOBAL_TOP_10) Color.White else Color.Black
+                )
+            ) {
+                Text("Mejores 10 Globalmente")
+            }
+
+            // Botón para Mejores del Día
+            Button(
+                onClick = { filterType = HighscoreFilter.TODAY_TOP },
+                colors = ButtonDefaults.buttonColors(
+                    contentColor = if (filterType == HighscoreFilter.TODAY_TOP) Color.White else Color.Black
+                )
+            ) {
+                Text("Mejores del Día")
+            }
+        }
+
+        RecordsList(recordsList)
+    }
 }
+
+
 
