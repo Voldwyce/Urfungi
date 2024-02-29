@@ -488,6 +488,18 @@ suspend fun getUserName(userId: String): String {
     }
     return userName
 }
+
+suspend fun getUserName2(idusuario: String): String {
+    val firestore = FirebaseFirestore.getInstance()
+    var userName = ""
+    try {
+        val userDocument = firestore.collection("usuarios").document(idusuario).get().await()
+        userName = userDocument.getString("username") ?: ""
+    } catch (e: Exception) {
+        Log.e("getUserName2", "Error getting user name", e)
+    }
+    return userName
+}
 @Composable
 fun ChooseDifficultyDialog(onDifficultySelected: (DifficultyLevel) -> Unit) {
     val dialogDismissed = remember { mutableStateOf(false) }
@@ -720,11 +732,13 @@ suspend fun getTopRecordsFromDatabase(
                     .get()
                     .await()
                 for (document in querySnapshot.documents) {
-                    val username = document.getString("idusuario") ?: "Anonymous"
+                    val idUsuario = document.getString("idusuario") ?: ""
+                    val username = getUserName2(idUsuario)
                     val score = document.getLong("score")?.toInt() ?: 0
                     recordsList.add(username to score)
                 }
             }
+
         }
     } catch (e: Exception) {
         Log.e("getTopRecordsFromDatabase", "Error getting top records", e)
