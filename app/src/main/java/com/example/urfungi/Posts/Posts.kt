@@ -24,13 +24,19 @@ import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.FavoriteBorder
+import androidx.compose.material.icons.filled.FilterList
 import androidx.compose.material.icons.filled.Map
 import androidx.compose.material.icons.filled.Send
+import androidx.compose.material.icons.filled.Sort
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TextField
@@ -60,12 +66,19 @@ import kotlinx.coroutines.tasks.await
 
 @Composable
 fun UserPostsScreen(navController: NavController) {
+    // Declaración de variables de estado para los posts y los tipos de setas
     var posts by remember { mutableStateOf(emptyList<Post>()) }
     var setaTypes by remember { mutableStateOf(emptyList<Setas>()) }
 
+    // Declaración de variables de estado para el filtro y orden
+    var selectedToxicity by remember { mutableStateOf("") }
+    var selectedOrder by remember { mutableStateOf("Fecha") }
+
+    // Obtener instancia de Firestore y el ID del usuario actual
     val db = FirebaseFirestore.getInstance()
     val userId = FirebaseAuth.getInstance().currentUser?.uid
 
+    // Función para cargar los posts del usuario actual
     fun loadPosts() {
         db.collection("posts")
             .whereEqualTo("usuario", userId)
@@ -73,13 +86,13 @@ fun UserPostsScreen(navController: NavController) {
             .addOnSuccessListener { result ->
                 posts = result.documents.mapNotNull { document ->
                     val post = document.toObject(Post::class.java)
-                    post?.id =
-                        document.id // Asignar el ID del documento a la propiedad 'id' del post
+                    post?.id = document.id
                     post
                 }
             }
     }
 
+    // Función para obtener los tipos de setas de Firestore
     suspend fun fetchMushroomData(): List<Setas> {
         val db = FirebaseFirestore.getInstance()
         return try {
@@ -101,7 +114,18 @@ fun UserPostsScreen(navController: NavController) {
 
                 if (id != null && nombre != null && nombreCientifico != null && familia != null && temporada != null && imagen != null && comestible != null && toxicidad != null && descripcion != null && habitat != null && dificultad != null && curiosidades != null) {
                     Setas(
-                        id, nombre, nombreCientifico, familia, temporada, imagen, comestible, toxicidad, descripcion, habitat, dificultad, curiosidades
+                        id,
+                        nombre,
+                        nombreCientifico,
+                        familia,
+                        temporada,
+                        imagen,
+                        comestible,
+                        toxicidad,
+                        descripcion,
+                        habitat,
+                        dificultad,
+                        curiosidades
                     )
                 } else null
             }
@@ -115,7 +139,7 @@ fun UserPostsScreen(navController: NavController) {
         }
     }
 
-
+    // Cargar los posts y los tipos de setas cuando se inicializa el componente
     LaunchedEffect(Unit) {
         loadPosts()
         setaTypes = fetchMushroomData()
@@ -128,6 +152,45 @@ fun UserPostsScreen(navController: NavController) {
             .fillMaxSize()
             .padding(16.dp)
     ) {
+        // Filtro por toxicidad
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(end = 8.dp),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Text("Toxicidad:")
+            val toxicities = listOf("Segura", "Leve", "Peligrosa", "Muy peligrosa", "Mortal")
+            toxicities.forEach { toxicity ->
+                RadioButton(
+                    selected = selectedToxicity == toxicity,
+                    onClick = { selectedToxicity = toxicity },
+                )
+            }
+        }
+
+        Spacer(modifier = Modifier.height(16.dp))
+
+        // Filtro por orden
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(end = 8.dp),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Text("Orden:")
+            val orders = listOf("Fecha", "Likes", "Comentarios")
+            orders.forEach { order ->
+                RadioButton(
+                    selected = selectedOrder == order,
+                    onClick = { selectedOrder = order },
+                )
+            }
+        }
+
+        // Título de los posts
         Text(
             text = "Mis Posts",
             fontWeight = FontWeight.Bold,
@@ -141,11 +204,12 @@ fun UserPostsScreen(navController: NavController) {
             onPostDeleted = ::loadPosts,
             onPostUpdated = ::loadPosts,
             currentUser = currentUser,
-            navController = navController
+            navController = navController,
+            selectedToxicity = selectedToxicity,
+            selectedOrder = selectedOrder
         )
     }
 }
-
 @Composable
 fun UserPostsContent(
     posts: List<Post>,
@@ -153,13 +217,18 @@ fun UserPostsContent(
     onPostDeleted: () -> Unit,
     onPostUpdated: () -> Unit,
     currentUser: FirebaseUser?,
-    navController: NavController  // Add this line
+    navController: NavController,
+    selectedToxicity: String,
+    selectedOrder: String
 ) {
+    // Lógica de filtrado y ordenamiento
+    val filteredPosts = filterAndSortPosts(posts, setaTypes, selectedToxicity, selectedOrder)
+
     LazyColumn(
         modifier = Modifier
             .fillMaxSize()
     ) {
-        items(posts) { post ->
+        items(filteredPosts) { post ->
             UserPostItem(
                 post = post,
                 setaTypes = setaTypes,
@@ -304,14 +373,20 @@ fun UserPostItem(
                         horizontalArrangement = Arrangement.Center,
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                        IconButton(onClick = { showCommentsDialog = true }, modifier = Modifier.size(24.dp)) {
+                        IconButton(
+                            onClick = { showCommentsDialog = true },
+                            modifier = Modifier.size(24.dp)
+                        ) {
                             Icon(
                                 imageVector = Icons.Default.ChatBubbleOutline,
                                 contentDescription = "Comentarios",
                                 tint = Color.Gray
                             )
                         }
-                        Text(text = commentCount.toString(), color = Color.Gray) // Mostrar el número de comentarios
+                        Text(
+                            text = commentCount.toString(),
+                            color = Color.Gray
+                        ) // Mostrar el número de comentarios
                     }
                 }
             }
@@ -348,7 +423,10 @@ fun UserPostItem(
                                         Text(text = timestamp, fontSize = 12.sp)
 
                                         Log.d("DEBUG", "Username del comentario: $username")
-                                        Log.d("DEBUG", "DisplayName del usuario actual: ${currentUser?.displayName}")
+                                        Log.d(
+                                            "DEBUG",
+                                            "DisplayName del usuario actual: ${currentUser?.displayName}"
+                                        )
                                         IconButton(onClick = {
                                             deleteComment(
                                                 post.id,
@@ -649,6 +727,33 @@ fun UserPostItem(
             )
         }
     }
+}
+
+fun filterAndSortPosts(
+    posts: List<Post>,
+    setaTypes: List<Setas>,
+    toxicity: String,
+    order: String
+): List<Post> {
+    var filteredPosts = posts
+
+    // Filtrar por toxicidad si se ha seleccionado una
+    if (toxicity.isNotEmpty()) {
+        filteredPosts = filteredPosts.filter { post ->
+            val setaType = setaTypes.find { it.id == post.idSeta }
+            setaType?.Toxicidad == toxicity
+        }
+    }
+
+    // Ordenar según el criterio seleccionado
+    filteredPosts = when (order) {
+        "Fecha" -> filteredPosts.sortedByDescending { it.fecha }
+        "Likes" -> filteredPosts.sortedByDescending { it.likes.size }
+        "Comentarios" -> filteredPosts.sortedByDescending { it.comentarios.size }
+        else -> filteredPosts
+    }
+
+    return filteredPosts
 }
 
 fun navigateToMap(navController: NavController, lat: Double, lon: Double) {

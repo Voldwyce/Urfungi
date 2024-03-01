@@ -48,7 +48,6 @@ fun Repositorio(navController: NavController) {
                 fontSize = 20.sp
             )
         }
-
         Button(
             onClick = { navController.navigate("restaurantes_list_item") },
             modifier = Modifier

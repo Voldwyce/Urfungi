@@ -70,6 +70,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.core.content.ContextCompat
+import androidx.core.content.ContextCompat.startActivity
 import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
 import androidx.navigation.NavController
 import androidx.navigation.NavDestination.Companion.hierarchy
@@ -88,6 +89,7 @@ import com.example.urfungi.MapsPosts.SearchScreen
 import com.example.urfungi.Posts.Post
 import com.example.urfungi.Posts.UserPostsScreen
 import com.example.urfungi.QuizJuego.HighscoresScreen
+import com.example.urfungi.QuizJuego.QuizPostScreen
 import com.example.urfungi.QuizJuego.QuizScreenFromFirebase
 import com.example.urfungi.Recetas.RecetasSetasListScreen
 import com.example.urfungi.Repo.Creditos
@@ -273,6 +275,7 @@ class MainActivity : ComponentActivity() {
                                             username = username,
                                             imagen = foto
                                         )
+                                        MensajesChat(usuarioId = usuarioId, username = username, imagen = foto)
                                     } else {
                                         // Manejar el caso en el que no se proporciona el ID del usuario o el nombre de usuario
                                         // Puedes mostrar un mensaje de error o volver a la pantalla anterior
@@ -297,7 +300,7 @@ class MainActivity : ComponentActivity() {
                                 }
 
                                 composable(
-                                    "mapScreen/{lat}/{lon}",
+                                    route = "mapScreen/{lat}/{lon}",
                                     arguments = listOf(
                                         navArgument("lat") { type = NavType.FloatType },
                                         navArgument("lon") { type = NavType.FloatType }
@@ -469,12 +472,18 @@ class MainActivity : ComponentActivity() {
                                         contentAlignment = Alignment.Center
                                     ) {
                                         QuizScreenFromFirebase(
-                                            onHighscoresClicked = { navController.navigate("highscores") }
+                                            onHighscoresClicked = { navController.navigate("highscores") },
+                                            onQuizPostsClicked = { navController.navigate("quizPosts") }
+
                                         )
                                     }
                                 }
                                 composable("highscores") {
                                     HighscoresScreen()
+                                }
+
+                                composable("quizPosts") {
+                                    QuizPostScreen()
                                 }
                             }
                         }
@@ -908,6 +917,13 @@ class MainActivity : ComponentActivity() {
                     Text("Grupos")
                 }
             }
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(8.dp)
+                    .height(400.dp),
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
 
                 // Lista de tarjetas de amigos
                 LazyColumn(
@@ -1076,6 +1092,7 @@ class MainActivity : ComponentActivity() {
 
             }
         }
+    }
 
 
     @Composable
