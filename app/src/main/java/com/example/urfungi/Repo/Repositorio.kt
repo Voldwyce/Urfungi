@@ -93,20 +93,5 @@ fun Repositorio(navController: NavController) {
                 fontSize = 20.sp
             )
         }
-        Button(
-            onClick = { navController.navigate("weather_screen") },
-            modifier = Modifier
-                .padding(16.dp)
-                .size(200.dp, 60.dp),
-            colors = ButtonDefaults.buttonColors(
-                containerColor = Color.Black.copy(alpha = 0.5f), contentColor = Color.White
-            ),
-            shape = RectangleShape
-        ) {
-            Text(
-                "Clima",
-                fontSize = 20.sp
-            )
-        }
     }
 }
