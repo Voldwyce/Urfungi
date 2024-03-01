@@ -69,19 +69,23 @@ fun WeatherApp() {
                     textStyle = androidx.compose.ui.text.TextStyle(fontSize = 20.sp)
                 )
                 IconButton(onClick = {
-                    CoroutineScope(Dispatchers.IO).launch {
-                        try {
-                            // COgemos la api del documento apis.xml
-                            val data = fetchWeather(city, apiKey)
-                            withContext(Dispatchers.Main) {
-                                weatherData = data
-                                errorMessage = null // clear previous error message
-                            }
-                        } catch (e: Exception) {
-                            withContext(Dispatchers.Main) {
-                                errorMessage = "No se pudo encontrar la ciudad: $city"
+                    if (city.isNotBlank()) {
+                        CoroutineScope(Dispatchers.IO).launch {
+                            try {
+                                // COgemos la api del documento apis.xml
+                                val data = fetchWeather(city, apiKey)
+                                withContext(Dispatchers.Main) {
+                                    weatherData = data
+                                    errorMessage = null // clear previous error message
+                                }
+                            } catch (e: Exception) {
+                                withContext(Dispatchers.Main) {
+                                    errorMessage = "No se pudo encontrar la ciudad: $city"
+                                }
                             }
                         }
+                    } else {
+                        errorMessage = "Por favor, introduce una ciudad"
                     }
                 }) {
                     Icon(Icons.Filled.Send, contentDescription = "Enviar")
@@ -109,14 +113,14 @@ fun WeatherScreen(weatherData: WeatherData) {
             weatherData.temperature in 10.0..25.0 -> Text(text = "☀️ Temperatura normal")
             else -> Text(text = "🔥 Hace calor")
         }
-        Spacer (modifier = Modifier.height(16.dp))
+        Spacer(modifier = Modifier.height(16.dp))
         Text(text = "💧 Humedad: ${weatherData.humidity}%")
         when {
             weatherData.humidity < 30 -> Text(text = "🏜️ Poca humedad")
             weatherData.humidity in 30.0..70.0 -> Text(text = "🌳 Humedad normal")
             else -> Text(text = "🌊 Mucha humedad")
         }
-        Spacer (modifier = Modifier.height(16.dp))
+        Spacer(modifier = Modifier.height(16.dp))
 
         Text(text = "☔ Precipitación: ${weatherData.precipitation} mm")
         when {
@@ -124,7 +128,7 @@ fun WeatherScreen(weatherData: WeatherData) {
             weatherData.precipitation in 1.0..10.0 -> Text(text = "🌦️ Precipitación normal")
             else -> Text(text = "🌧️ Mucha precipitación")
         }
-        Spacer (modifier = Modifier.height(16.dp))
+        Spacer(modifier = Modifier.height(16.dp))
         Text(text = "💨 Velocidad del viento: ${weatherData.windSpeed} km/h")
         when {
             weatherData.windSpeed < 10 -> Text(text = "🍃 Viento suave")
