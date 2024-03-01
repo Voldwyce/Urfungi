@@ -46,6 +46,7 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -63,6 +64,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -92,6 +94,8 @@ import com.example.urfungi.Repo.Creditos
 import com.example.urfungi.Repo.Repositorio
 import com.example.urfungi.Repo.WeatherApp
 import com.example.urfungi.Restaurantes.RestaurantesSetasListScreen
+import com.example.urfungi.Usuarios.Chat
+import com.example.urfungi.Usuarios.ChatGrupo
 import com.example.urfungi.Usuarios.LoginAppActivity
 import com.example.urfungi.Usuarios.MensajesChat
 import com.example.urfungi.Usuarios.usuarios
@@ -110,6 +114,7 @@ import java.net.URLEncoder
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
+import java.util.UUID
 import java.util.concurrent.ExecutorService
 import java.util.concurrent.Executors
 
@@ -220,6 +225,31 @@ class MainActivity : ComponentActivity() {
                                     MensajesScreen(navController = navController)
                                 }
 
+                                composable(
+                                    route = "grupoCrear",
+                                    enterTransition = {
+                                        slideIntoContainer(AnimatedContentTransitionScope.SlideDirection.Right)
+                                    },
+                                    exitTransition = {
+                                        slideOutOfContainer(AnimatedContentTransitionScope.SlideDirection.Left)
+                                    }
+                                ) {
+                                    CrearGrupoScreen(navController = navController)
+                                }
+
+                                composable(
+                                    route = "grupoChat/{grupoId}",
+                                    enterTransition = {
+                                        slideIntoContainer(AnimatedContentTransitionScope.SlideDirection.Right)
+                                    },
+                                    exitTransition = {
+                                        slideOutOfContainer(AnimatedContentTransitionScope.SlideDirection.Left)
+                                    }
+                                ) { backStackEntry ->
+                                    val grupoId = backStackEntry.arguments?.getString("grupoId")
+
+                                    ChatGrupo(grupoId = grupoId)
+                                }
 
                                 composable(
                                     route = "mensajes/{usuarioId}/{username}/{escapedUriString}",
@@ -232,12 +262,17 @@ class MainActivity : ComponentActivity() {
                                 ) { backStackEntry ->
                                     val usuarioId = backStackEntry.arguments?.getString("usuarioId")
                                     val username = backStackEntry.arguments?.getString("username")
-                                    val foto = backStackEntry.arguments?.getString("escapedUriString")
+                                    val foto =
+                                        backStackEntry.arguments?.getString("escapedUriString")
 
 
                                     if (usuarioId != null && username != null && foto != null) {
                                         // Aquí puedes cargar la pantalla MensajesChat con el usuario correspondiente
-                                        MensajesChat(usuarioId = usuarioId, username = username, imagen = foto)
+                                        MensajesChat(
+                                            usuarioId = usuarioId,
+                                            username = username,
+                                            imagen = foto
+                                        )
                                     } else {
                                         // Manejar el caso en el que no se proporciona el ID del usuario o el nombre de usuario
                                         // Puedes mostrar un mensaje de error o volver a la pantalla anterior
@@ -515,10 +550,13 @@ class MainActivity : ComponentActivity() {
         var solicitudes by remember { mutableStateOf<List<usuarios>>(emptyList()) }
         var explorar by remember { mutableStateOf<List<usuarios>>(emptyList()) }
         var listaActual by remember { mutableStateOf<List<usuarios>>(emptyList()) }
+        var listaActualChat by remember { mutableStateOf<List<Chat>>(emptyList()) }
         var solicitudesRecibidas = mutableListOf<usuarios>()
         var solicitudesEnviadas = mutableListOf<usuarios>()
         var clicUsuario by remember { mutableStateOf(false) }
-
+        var showCreateGroupButton by remember { mutableStateOf(false) }
+        var grupos by remember { mutableStateOf<List<Chat>>(emptyList()) }
+        var mostrarGrupos by remember { mutableStateOf(false) }
 
         LaunchedEffect(Unit) {
             val currentUser = FirebaseAuth.getInstance().currentUser
@@ -572,62 +610,47 @@ class MainActivity : ComponentActivity() {
                         * le has enviado solicitud
                         * */
 
-                        if (listaSolicitud.isNotEmpty()) {
-                            listaSolicitud.forEach { soliId ->
-                                val soliReference = db.collection("usuarios").document(soliId)
-                                soliReference.get().addOnSuccessListener { soliSnapshot ->
-                                    if (soliSnapshot.exists()) {
-                                        val soli = soliSnapshot.toObject(usuarios::class.java)
-                                        if (soli != null) {
-                                            solicitudesEnviadas.add(soli)
-                                        }
-                                    }
+
+                        // Obtener las solicitudes recibidas
+                        val currentUserID = usuario?.id ?: ""
+                        db.collection("usuarios")
+                            .whereArrayContains("solicitudAmistad", currentUserID)
+                            .get()
+                            .addOnSuccessListener { result ->
+                                solicitudesRecibidas = result.toObjects(usuarios::class.java)
+
+                                if (solicitudesRecibidas.isNotEmpty()) {
+                                    solicitudes = solicitudesRecibidas
+                                    listaActual = solicitudes
+                                } else {
+                                    listaActual = emptyList()
                                 }
                             }
+                            .addOnFailureListener { e ->
+                                // Manejar errores aquí
+                                Log.e(
+                                    TAG,
+                                    "Error al obtener la lista de solicitudesRecibidas en Firestore: $e"
+                                )
+                            }
 
-                            // Obtener las solicitudes recibidas después de procesar las enviadas
-                            val currentUserID = usuario?.id ?: ""
-                            db.collection("usuarios")
-                                .whereArrayContains("solicitudAmistad", currentUserID)
+                        usuario?.id?.let { userId ->
+                            val db = Firebase.firestore
+                            db.collection("Chat")
+                                .whereArrayContains("integrantes", userId)
                                 .get()
                                 .addOnSuccessListener { result ->
-                                    solicitudesRecibidas = result.toObjects(usuarios::class.java)
+                                    grupos = result.toObjects(Chat::class.java)
 
-                                    // Actualizar la listaActual después de obtener la información de la solicitud
-                                    solicitudes = solicitudesRecibidas + solicitudesEnviadas
-                                    listaActual = solicitudes
+                                    listaActualChat = grupos
                                 }
                                 .addOnFailureListener { e ->
                                     // Manejar errores aquí
-                                    Log.e(
-                                        TAG,
-                                        "Error al obtener la lista de solicitudesRecibidas en Firestore: $e"
-                                    )
-                                }
-                        } else {
-                            // Obtener las solicitudes recibidas después de procesar las enviadas
-                            val currentUserID = usuario?.id ?: ""
-                            db.collection("usuarios")
-                                .whereArrayContains("solicitudAmistad", currentUserID)
-                                .get()
-                                .addOnSuccessListener { result ->
-                                    solicitudesRecibidas = result.toObjects(usuarios::class.java)
-
-                                    if (solicitudesRecibidas.isNotEmpty()) {
-                                        solicitudes = solicitudesRecibidas
-                                        listaActual = solicitudes
-                                    } else {
-                                        listaActual = emptyList()
-                                    }
-                                }
-                                .addOnFailureListener { e ->
-                                    // Manejar errores aquí
-                                    Log.e(
-                                        TAG,
-                                        "Error al obtener la lista de solicitudesRecibidas en Firestore: $e"
-                                    )
+                                    Log.e(TAG, "Error al obtener la lista de grupos en los que el usuario es un integrante: $e")
                                 }
                         }
+
+
 
                         /*
                         * Filtros para la lista de exploración:
@@ -748,8 +771,6 @@ class MainActivity : ComponentActivity() {
                 }
             }
         }
-
-
         Column(
             modifier = Modifier
                 .fillMaxSize()
@@ -780,7 +801,10 @@ class MainActivity : ComponentActivity() {
                             FirebaseAuth.getInstance().signOut()
                             navigateToLoginAppActivity()
                         },
-                        onEditClick = {}
+                        onEditClick = {},
+                        onCrearGrupoClick = {
+                            navController.navigate("grupoCrear")
+                        }
                     )
                 } else {
                     Text("El usuario es nulo")
@@ -800,6 +824,8 @@ class MainActivity : ComponentActivity() {
                     ),
                     onClick = {
                         listaActual = explorar
+                        mostrarGrupos = false
+
                     },
                     modifier = Modifier
                         .weight(1f)
@@ -814,6 +840,8 @@ class MainActivity : ComponentActivity() {
                     ),
                     onClick = {
                         listaActual = amigos
+                        mostrarGrupos = false
+
                     },
                     modifier = Modifier
                         .weight(1f)
@@ -828,6 +856,8 @@ class MainActivity : ComponentActivity() {
                     ),
                     onClick = {
                         listaActual = solicitudes
+                        mostrarGrupos = false
+
                     },
                     modifier = Modifier
                         .weight(1f)
@@ -852,6 +882,8 @@ class MainActivity : ComponentActivity() {
                     onClick = {
                         listaActual = amigos
                         clicUsuario = true
+                        showCreateGroupButton = false
+                        mostrarGrupos = false
                     },
                     modifier = Modifier
                         .weight(1f)
@@ -865,6 +897,9 @@ class MainActivity : ComponentActivity() {
                         containerColor = Color.Black.copy(alpha = 0.5f), contentColor = Color.White
                     ),
                     onClick = {
+                        showCreateGroupButton = true
+                        listaActualChat = grupos
+                        mostrarGrupos = true
                     },
                     modifier = Modifier
                         .weight(1f)
@@ -873,13 +908,6 @@ class MainActivity : ComponentActivity() {
                     Text("Grupos")
                 }
             }
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(8.dp)
-                    .height(400.dp),
-                horizontalArrangement = Arrangement.SpaceBetween
-            ) {
 
                 // Lista de tarjetas de amigos
                 LazyColumn(
@@ -889,36 +917,142 @@ class MainActivity : ComponentActivity() {
                 ) {
 
                     if (listaActual.isNotEmpty()) {
-                        items(listaActual) { amigo ->
-                            AmigoCard(
-                                amigo = amigo,
-                                isExploring = (listaActual === explorar),
-                                onAddClick = {
-                                    // Agregar amigo.id a la lista de solicitudesAmistad del usuario actual
-                                    usuario?.let { currentUser ->
-                                        val db = Firebase.firestore
-                                        val userReference =
-                                            db.collection("usuarios").document(currentUser.id ?: "")
+                        if (mostrarGrupos) {
 
-                                        // Actualizar la lista de solicitudesAmistad en Firestore
-                                        userReference.update(
-                                            "solicitudAmistad",
-                                            FieldValue.arrayUnion(it)
-                                        )
-                                            .addOnSuccessListener {
-                                                // Éxito al agregar a las solicitudesAmistad
-                                            }
-                                            .addOnFailureListener { e ->
-                                                // Manejar errores aquí
-                                                Log.e(
-                                                    TAG,
-                                                    "Error al agregar a las solicitudesAmistad: $e"
-                                                )
-                                            }
+                            items(listaActualChat) { grupos ->
+                                GrupoCard(
+                                    grupo = grupos,
+                                    navController = navController,
+                                )
+                            }
+                        } else {
+                            items(listaActual) { amigo ->
+
+
+                                AmigoCard(
+                                    amigo = amigo,
+                                    isExploring = (listaActual === explorar),
+                                    onAddClick = {
+                                        // Agregar amigo.id a la lista de solicitudesAmistad del usuario actual
+                                        usuario?.let { currentUser ->
+                                            val db = Firebase.firestore
+                                            val userReference =
+                                                db.collection("usuarios")
+                                                    .document(currentUser.id ?: "")
+
+                                            // Actualizar la lista de solicitudesAmistad en Firestore
+                                            userReference.update(
+                                                "solicitudAmistad",
+                                                FieldValue.arrayUnion(it)
+                                            )
+                                                .addOnSuccessListener {
+                                                    // Éxito al agregar a las solicitudesAmistad
+                                                }
+                                                .addOnFailureListener { e ->
+                                                    // Manejar errores aquí
+                                                    Log.e(
+                                                        TAG,
+                                                        "Error al agregar a las solicitudesAmistad: $e"
+                                                    )
+                                                }
+                                        }
+                                    },
+                                    navController = navController,
+                                    showAdditionalButton = (listaActual === solicitudes), // Mostrar el botón adicional solo en la lista de solicitudes
+                                    onAdditionalButtonClick = { amigoSeleccionado ->
+                                        // Lógica para agregar al usuario amigo a la lista de amigos del usuario logeado
+                                        usuario?.let { currentUser ->
+                                            val db = Firebase.firestore
+
+                                            // Actualizar la lista de amigos en Firestore para el usuario logeado
+                                            val userReference = db.collection("usuarios")
+                                                .document(currentUser.id ?: "")
+                                            userReference.update(
+                                                "amigos",
+                                                FieldValue.arrayUnion(amigoSeleccionado.id)
+                                            )
+                                                .addOnSuccessListener {
+                                                }
+                                                .addOnFailureListener { e ->
+                                                    // Manejar errores aquí
+                                                    Log.e(
+                                                        TAG,
+                                                        "Error al agregar a la lista de amigos: $e"
+                                                    )
+                                                }
+
+                                            // Actualizar la lista de amigos en Firestore para el usuario amigo
+                                            val amigoReference = db.collection("usuarios")
+                                                .document(amigoSeleccionado.id ?: "")
+                                            amigoReference.update(
+                                                "amigos",
+                                                FieldValue.arrayUnion(currentUser.id)
+                                            )
+                                                .addOnSuccessListener {
+                                                    // Lógica para eliminar el id del usuario logeado de la lista de solicitudamigos del usuario amigo
+                                                    val amigoReference =
+                                                        db.collection("usuarios").document(amigo.id)
+                                                    amigoReference.update(
+                                                        "solicitudAmistad",
+                                                        FieldValue.arrayRemove(currentUser.id)
+                                                    )
+                                                        .addOnSuccessListener {
+                                                            // Lógica para eliminar al usuario de la lista de solicitudes del usuario logeado
+                                                            userReference.update(
+                                                                "solicitudAmistad",
+                                                                FieldValue.arrayRemove(amigo.id)
+                                                            )
+                                                                .addOnSuccessListener {
+                                                                    // Éxito al eliminar de las solicitudesAmistad
+                                                                }
+                                                                .addOnFailureListener { e ->
+                                                                    // Manejar errores aquí
+                                                                    Log.e(
+                                                                        TAG,
+                                                                        "Error al eliminar de las solicitudesAmistad: $e"
+                                                                    )
+                                                                }
+                                                        }
+                                                        .addOnFailureListener { e ->
+                                                            // Manejar errores aquí
+                                                            Log.e(
+                                                                TAG,
+                                                                "Error al eliminar la solicitudAmistad: $e"
+                                                            )
+                                                        }
+                                                }
+                                                .addOnFailureListener { e ->
+                                                    // Manejar errores aquí
+                                                    Log.e(
+                                                        TAG,
+                                                        "Error al agregar a la lista de amigos del usuario amigo: $e"
+                                                    )
+                                                }
+                                        }
+                                    },
+                                    onRejectClick = { usuarioRechazado ->
+                                        usuario?.let { currentUser ->
+                                            val db = Firebase.firestore
+                                            // Lógica para eliminar el id del usuario logeado de la lista de solicitudamigos del usuario amigo
+                                            val amigoReference =
+                                                db.collection("usuarios").document(amigo.id)
+                                            amigoReference.update(
+                                                "solicitudAmistad",
+                                                FieldValue.arrayRemove(currentUser.id)
+                                            )
+                                                .addOnSuccessListener {
+                                                }
+                                                .addOnFailureListener { e ->
+                                                    // Manejar errores aquí
+                                                    Log.e(
+                                                        TAG,
+                                                        "Error al eliminar la solicitudAmistad: $e"
+                                                    )
+                                                }
+                                        }
                                     }
-                                },
-                                navController = navController
-                            )
+                                )
+                            }
                         }
                     } else {
                         // Mostrar mensaje cuando la lista esté vacía
@@ -927,6 +1061,7 @@ class MainActivity : ComponentActivity() {
                                 text = when {
                                     listaActual === amigos -> "Sin Amigos"
                                     listaActual === solicitudes -> "Sin Solicitudes"
+                                    mostrarGrupos === true && listaActualChat === grupos -> "Sin Grupos"
                                     else -> "Exploración Completada"
                                 },
                                 modifier = Modifier
@@ -938,9 +1073,9 @@ class MainActivity : ComponentActivity() {
                         }
                     }
                 }
+
             }
         }
-    }
 
 
     @Composable
@@ -948,7 +1083,10 @@ class MainActivity : ComponentActivity() {
         amigo: usuarios,
         isExploring: Boolean,
         onAddClick: (String) -> Unit,
-        navController: NavController
+        navController: NavController,
+        showAdditionalButton: Boolean = false, // Nuevo parámetro para controlar la visibilidad del botón adicional
+        onAdditionalButtonClick: (usuarios) -> Unit = {},
+        onRejectClick: (usuarios) -> Unit = {}// Nuevo parámetro para manejar el clic en el botón adicional
     ) {
         Card(
             modifier = Modifier
@@ -1061,6 +1199,42 @@ class MainActivity : ComponentActivity() {
                         )
                     }
                 }
+
+                if (showAdditionalButton) {
+                    IconButton(
+                        onClick = { onAdditionalButtonClick(amigo) },
+                        modifier = Modifier
+                            .size(40.dp)
+                            .clip(CircleShape)
+                            .background(Color.Blue) // Color del botón adicional
+                            .padding(top = 8.dp, end = 8.dp)
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Add, // Reemplaza con el icono adecuado
+                            contentDescription = "Botón Adicional",
+                            modifier = Modifier
+                                .fillMaxSize()
+                                .padding(4.dp)
+                        )
+                    }
+                    // Botón adicional para rechazar
+                    Button(
+                        onClick = { onRejectClick(amigo) },
+                        modifier = Modifier
+                            .size(40.dp)
+                            .clip(CircleShape)
+                            .background(Color.Red) // Puedes ajustar el color según tus preferencias
+                            .padding(top = 8.dp, end = 8.dp)
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Clear, // Puedes reemplazarlo con el icono adecuado
+                            contentDescription = "Rechazar",
+                            modifier = Modifier
+                                .fillMaxSize()
+                                .padding(4.dp)
+                        )
+                    }
+                }
             }
         }
     }
@@ -1095,7 +1269,7 @@ class MainActivity : ComponentActivity() {
 
 
     @Composable
-    fun MensajesCard(usuario: usuarios?, onLogoutClick: () -> Unit, onEditClick: () -> Unit) {
+    fun MensajesCard(usuario: usuarios?, onLogoutClick: () -> Unit, onEditClick: () -> Unit, onCrearGrupoClick: () -> Unit) {
 
         Box(
             modifier = Modifier.fillMaxSize(),
@@ -1105,7 +1279,7 @@ class MainActivity : ComponentActivity() {
                 Card(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .height(150.dp),
+                        .height(180.dp),
 
                     shape = RoundedCornerShape(16.dp),
                 ) {
@@ -1174,7 +1348,7 @@ class MainActivity : ComponentActivity() {
                             IconButton(
                                 onClick = { onEditClick() },
                                 modifier = Modifier
-                                    .size(40.dp) // Aumentado el tamaño del botón
+                                    .size(40.dp)
                                     .clip(CircleShape)
                                     .background(Color.Gray)
                                     .padding(top = 8.dp, end = 8.dp)
@@ -1210,10 +1384,21 @@ class MainActivity : ComponentActivity() {
 
                                 )
                             }
+
+                            Button(
+                                onClick = { onCrearGrupoClick() },
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(5.dp)
+                            ) {
+                                Text("Crear Grupo")
+                            }
+
                         }
                     }
                 }
             }
+
         }
     }
 
@@ -1540,6 +1725,297 @@ fun onLikeClick(postPair: Pair<String, Post>) {
 
                 postRef.update("likes", likes)
             }
+        }
+    }
+}
+
+@Composable
+fun CrearGrupoScreen(
+    navController: NavController) {
+    var amigosDisponibles by remember { mutableStateOf<List<usuarios>>(emptyList()) }
+    var amigosSeleccionados by remember { mutableStateOf<List<usuarios>>(emptyList()) }
+    var usuario by remember { mutableStateOf<usuarios?>(null) }
+    var amigos by remember { mutableStateOf<List<usuarios>>(emptyList()) }
+    var nombreGrupo by remember { mutableStateOf(TextFieldValue("")) }
+
+
+    LaunchedEffect(Unit) {
+        val currentUser = FirebaseAuth.getInstance().currentUser
+        if (currentUser != null) {
+            val userId = currentUser.uid
+            val db = Firebase.firestore
+            val userReference = db.collection("usuarios").document(userId)
+
+            userReference.get().addOnSuccessListener { documentSnapshot ->
+                if (documentSnapshot.exists()) {
+                    // El documento existe, puedes obtener el objeto usuarios
+                    usuario = documentSnapshot.toObject(usuarios::class.java)
+
+                    // Obtener la lista de amigos
+                    val listaAmigos = usuario?.amigos ?: emptyList()
+
+                    if (listaAmigos.isNotEmpty()) {
+                        // Obtener información de cada amigo y almacenarla en la lista 'amigos'
+                        listaAmigos.forEach { amigoId ->
+                            val amigoReference = db.collection("usuarios").document(amigoId)
+                            amigoReference.get().addOnSuccessListener { amigoSnapshot ->
+                                if (amigoSnapshot.exists()) {
+                                    val amigo = amigoSnapshot.toObject(usuarios::class.java)
+                                    if (amigo != null) {
+                                        amigos = amigos + amigo
+                                        // Actualizar la listaActual después de obtener la información del amigo
+                                        amigosDisponibles = amigos
+                                    }
+                                }
+                            }
+                        }
+                    }
+
+                }
+            }
+        }
+    }
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(16.dp)
+    ) {
+
+        OutlinedTextField(
+            value = nombreGrupo.text,
+            onValueChange = { nombreGrupo = nombreGrupo.copy(text = it) },
+            label = { Text("Nombre del Grupo") },
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(8.dp)
+        )
+
+
+        // Lista de amigos disponibles
+        Text("Selecciona amigos para el grupo:")
+        LazyColumn(
+            modifier = Modifier.weight(1f)
+        ) {
+            items(amigosDisponibles) { amigo ->
+                AmigoCardCrearGrupo(
+                    amigo = amigo,
+                    onAddClick = {
+                        amigosSeleccionados = amigosSeleccionados + it
+                    },
+                    navController = navController
+                )
+            }
+        }
+
+
+        // Lista de amigos seleccionados
+        Text("Amigos seleccionados:")
+        LazyColumn(
+            modifier = Modifier.weight(1f)
+        ) {
+            items(amigosSeleccionados) { amigo ->
+                AmigoCardCrearGrupo(
+                    amigo = amigo,
+                    onAddClick = {
+                        // Puedes agregar lógica adicional si es necesario
+                    },
+                    navController = navController               )
+            }
+        }
+
+        // Botón para crear el grupo con amigos seleccionados
+            Button(
+                onClick = {
+                    // Verificar que haya al menos 1 amigos seleccionados para crear un grupo
+                    if (amigosSeleccionados.size >= 1) {
+                        // Obtener IDs de amigos seleccionados
+                        val idsAmigosSeleccionados = amigosSeleccionados.map { it.id ?: "" }
+                        val idUsuarioLogeado = usuario?.id
+
+
+
+                        // Crear un objeto Chat con la información del grupo
+                        val nuevoGrupo = Chat(
+                            id = "grupo_${UUID.randomUUID()}",  // Firestore generará un ID automáticamente
+                            integrantes = (listOf(idUsuarioLogeado) + idsAmigosSeleccionados).map { it!! },
+                            grupo = true,
+                            nombreGrupo = nombreGrupo.text,
+                            usuariosEnChat = null  // Puedes ajustar según tus necesidades
+                        )
+
+                    // Agregar el grupo a Firestore
+                    val db = Firebase.firestore
+                    db.collection("Chat")
+                        .add(nuevoGrupo)
+                        .addOnSuccessListener { documentReference ->
+                            // Grupo creado exitosamente
+                            val nuevoGrupoId = documentReference.id
+
+                            // Actualizar la lista de chats de cada integrante
+                            idsAmigosSeleccionados.forEach { amigoId ->
+                                db.collection("usuarios")
+                                    .document(amigoId)
+                                    .update("Chat", FieldValue.arrayUnion(nuevoGrupoId))
+                                    .addOnSuccessListener {
+                                        Log.d("CrearGrupoScreen", "Grupo creado exitosamente")
+                                    }
+                                    .addOnFailureListener { e ->
+                                        Log.e("CrearGrupoScreen", "Error al crear el grupo", e)
+                                    }
+                            }
+
+                            navController.navigate("mensajes")
+                        }
+                        .addOnFailureListener { e ->
+                        }
+                } else {
+                    // Mostrar un mensaje de que se necesitan al menos 2 amigos para crear un grupo
+                }
+            },
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(8.dp)
+        ) {
+            Text("Crear Grupo")
+        }
+    }
+}
+
+@Composable
+fun AmigoCardCrearGrupo(
+    amigo: usuarios,
+    onAddClick: (usuarios) -> Unit,
+    navController: NavController
+) {
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(120.dp)
+            .padding(10.dp),
+        shape = RoundedCornerShape(16.dp),
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(6.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            // Imagen de perfil del amigo a la izquierda
+            AndroidView(
+                factory = { context ->
+                    ImageView(context).apply {
+                        val amigoFoto = amigo.foto
+                        val imageUrl = "$amigoFoto"
+                        Glide.with(context)
+                            .load(imageUrl)
+                            .fitCenter()
+                            .transform(CircleCrop())
+                            .into(this)
+                    }
+                }, modifier = Modifier
+                    .size(80.dp)
+                    .clip(CircleShape)
+                    .border(2.dp, Color.Green, CircleShape)
+            )
+
+            // Espaciador horizontal
+            Spacer(modifier = Modifier.width(12.dp))
+
+            // Columna para el Usuario y Nombre del amigo
+            Column(
+                modifier = Modifier
+                    .weight(1f)
+                    .fillMaxHeight()
+                    .align(Alignment.CenterVertically),
+                verticalArrangement = Arrangement.spacedBy(2.dp)
+            ) {
+                // Nombre de usuario más pequeño del amigo
+                Text(
+                    text = amigo.username ?: "Username",
+                    fontSize = 22.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = Color.White,
+                    modifier = Modifier
+                        .padding(top = 8.dp)
+                        .clickable {
+                            val escapedUriString = URLEncoder.encode(amigo.foto, "UTF-8")
+                            navController.navigate("mensajes/${amigo.id}/${amigo.username}/${escapedUriString}")
+                        }
+                )
+
+                // Nombre completo del amigo
+                Text(
+                    text = amigo.nombre ?: "Nombre del Amigo",
+                    fontSize = 14.sp,
+                    color = Color.White
+                )
+            }
+
+            // Espaciador horizontal
+            Spacer(modifier = Modifier.width(16.dp))
+
+            // Botón de Agregar
+            Button(
+                onClick = { onAddClick(amigo) },
+                modifier = Modifier
+                    .size(40.dp)
+                    .clip(CircleShape)
+                    .background(Color.Green)
+                    .padding(top = 8.dp, end = 8.dp)
+            ) {
+                Icon(
+                    imageVector = Icons.Default.Add,
+                    contentDescription = "Agregar",
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(4.dp)
+                )
+            }
+        }
+    }
+}
+
+@Composable
+fun GrupoCard(
+    grupo: Chat,
+    navController: NavController
+) {
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(120.dp)
+            .padding(10.dp)
+            .clickable {
+                // Navegar a la pantalla de detalles del grupo cuando se hace clic en el nombre
+                navController.navigate("grupoChat/${grupo.id}")
+            },
+        shape = RoundedCornerShape(16.dp),
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(6.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            // Nombre del grupo
+            Text(
+                text = grupo.nombreGrupo ?: "Nombre del Grupo",
+                fontSize = 22.sp,
+                fontWeight = FontWeight.Bold,
+                color = Color.White,
+                modifier = Modifier
+                    .padding(top = 8.dp)
+            )
+
+            // Espaciador horizontal
+            Spacer(modifier = Modifier.width(16.dp))
+
+            // Cantidad de personas en el grupo
+            Text(
+                text = "Miembros: ${grupo.integrantes?.size}",
+                fontSize = 14.sp,
+                color = Color.White
+            )
         }
     }
 }
