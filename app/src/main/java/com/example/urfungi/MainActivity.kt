@@ -86,6 +86,7 @@ import com.example.urfungi.MapsPosts.SearchScreen
 import com.example.urfungi.Posts.Post
 import com.example.urfungi.Posts.UserPostsScreen
 import com.example.urfungi.QuizJuego.HighscoresScreen
+import com.example.urfungi.QuizJuego.QuizPostScreen
 import com.example.urfungi.QuizJuego.QuizScreenFromFirebase
 import com.example.urfungi.Recetas.RecetasSetasListScreen
 import com.example.urfungi.Repo.Creditos
@@ -434,12 +435,18 @@ class MainActivity : ComponentActivity() {
                                         contentAlignment = Alignment.Center
                                     ) {
                                         QuizScreenFromFirebase(
-                                            onHighscoresClicked = { navController.navigate("highscores") }
+                                            onHighscoresClicked = { navController.navigate("highscores") },
+                                            onQuizPostsClicked = { navController.navigate("quizPosts") }
+
                                         )
                                     }
                                 }
                                 composable("highscores") {
                                     HighscoresScreen()
+                                }
+
+                                composable("quizPosts") {
+                                    QuizPostScreen()
                                 }
                             }
                         }
