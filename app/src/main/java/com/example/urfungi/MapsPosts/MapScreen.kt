@@ -1,4 +1,7 @@
+package com.example.urfungi.MapsPosts
+
 import android.Manifest
+import android.annotation.SuppressLint
 import android.content.Context
 import android.content.pm.PackageManager
 import androidx.activity.compose.rememberLauncherForActivityResult
@@ -10,7 +13,7 @@ import androidx.compose.ui.viewinterop.AndroidView
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
 import androidx.navigation.NavController
-import com.example.urfungi.Post
+import com.example.urfungi.Posts.Post
 import com.google.android.gms.location.FusedLocationProviderClient
 import com.google.android.gms.location.LocationServices
 import com.google.firebase.auth.FirebaseAuth
@@ -29,21 +32,23 @@ import org.osmdroid.views.overlay.mylocation.GpsMyLocationProvider
 import org.osmdroid.views.overlay.mylocation.MyLocationNewOverlay
 
 
-import android.graphics.Color
 import android.graphics.Bitmap
-import android.graphics.BitmapFactory
-import android.graphics.Canvas
 import android.graphics.drawable.BitmapDrawable
 import android.util.Log
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Text
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
+import com.example.urfungi.R.drawable.mushroom
 import com.example.urfungi.Restaurantes.Restaurantes
 import com.google.firebase.firestore.FirebaseFirestore
 
@@ -76,8 +81,8 @@ suspend fun FusedLocationProviderClient.awaitLastLocation(context: Context) =
 
 @Composable
 fun MapScreen(navController: NavController, lat: Double?, lon: Double?) {
-    val latitude = lat?.toDouble()
-    val longitude = lon?.toDouble()
+    val latitude = lat
+    val longitude = lon
 
     val context = LocalContext.current
     val fusedLocationClient = remember { LocationServices.getFusedLocationProviderClient(context) }
@@ -90,8 +95,9 @@ fun MapScreen(navController: NavController, lat: Double?, lon: Double?) {
         posts = loadPosts()
     }
 
-
     val mapView = rememberMapViewWithUserLocation(context, coroutineScope)
+    DrawMarkers(mapView, posts)
+
     val db = FirebaseFirestore.getInstance()
 
     // Estado para controlar la visibilidad de los marcadores
@@ -100,7 +106,6 @@ fun MapScreen(navController: NavController, lat: Double?, lon: Double?) {
     // Estado para almacenar la referencia a los marcadores de los restaurantes
     var restaurantesMarkers by remember { mutableStateOf<List<Marker>?>(null) }
 
-    DrawMarkers(mapView, posts)
     val requestPermissionLauncher = rememberLauncherForActivityResult(
         ActivityResultContracts.RequestPermission()
     ) { isGranted: Boolean ->
@@ -132,13 +137,18 @@ fun MapScreen(navController: NavController, lat: Double?, lon: Double?) {
             val geoPoint = GeoPoint(latitude, longitude)
             mapView.controller.setCenter(geoPoint)
             mapView.controller.setZoom(15.0)
-
-            val marker = mapView.overlays.find {
-                it is Marker && it.position.latitude == latitude && it.position.longitude == longitude
-            } as? Marker
-
-            marker?.showInfoWindow()
+        } else {
+            coroutineScope.launch {
+                val location = fusedLocationClient.awaitLastLocation(context)
+                if (location != null) {
+                    val geoPoint = GeoPoint(location.latitude, location.longitude)
+                    mapView.controller.setCenter(geoPoint)
+                    mapView.controller.setZoom(15.0)
+                }
+            }
         }
+        Log.d("MapScreen", "Map center: ${mapView.mapCenter.latitude}, ${mapView.mapCenter.longitude}")
+        Log.d("MapScreen", "Map zoom level: ${mapView.zoomLevelDouble}")
     }
 
     DisposableEffect(Unit) {
@@ -176,23 +186,11 @@ fun MapScreen(navController: NavController, lat: Double?, lon: Double?) {
                 Manifest.permission.ACCESS_FINE_LOCATION
             ) == PackageManager.PERMISSION_GRANTED
         ) {
-            coroutineScope.launch {
-
-                // Crea un marcador para el punto específico
-                val pointMarker = Marker(mapView).apply {
-                    position =
-                        GeoPoint(41.5632, 2.0089) // Coordenadas de Terrassa, Barcelona, España
-                    setAnchor(Marker.ANCHOR_CENTER, Marker.ANCHOR_BOTTOM)
-                    title = "Point Marker"
-                }
-                mapView.overlays.add(pointMarker)
-            }
         } else {
             requestPermissionLauncher.launch(Manifest.permission.ACCESS_FINE_LOCATION)
         }
 
         onDispose {
-            // No es necesario hacer nada aquí porque el LaunchedEffect se encarga de eliminar la marca
         }
     }
 
@@ -206,7 +204,11 @@ fun MapScreen(navController: NavController, lat: Double?, lon: Double?) {
         Button(
             onClick = { toggleMarkersVisibility() },
             modifier = Modifier
-                .size(120.dp, 50.dp)
+                .width(150.dp)
+                .height(50.dp),
+            colors = ButtonDefaults.buttonColors(
+                containerColor = Color.Black.copy(alpha = 0.5f), contentColor = Color.White
+            )
         ) {
             Text(if (mostrarMarcadores) "Ocultar Restaurantes" else "Mostrar Restaurantes")
         }
@@ -242,7 +244,6 @@ fun rememberMapViewWithUserLocation(
         MapView(context).apply {
             setTileSource(TileSourceFactory.MAPNIK)
 
-            // Crea un nuevo MyLocationNewOverlay y lo añade al mapa
             val myLocationOverlay = MyLocationNewOverlay(GpsMyLocationProvider(context), this)
             myLocationOverlay.enableMyLocation()
             overlays.add(myLocationOverlay)
@@ -267,34 +268,39 @@ suspend fun loadPosts(): List<Post> {
         post
     }
 
-    // Log the posts
-    Log.d("MapScreen", "Posts: $posts")
+    Log.d("loadPosts", "Posts: $posts")
 
     return posts
 }
-
+@SuppressLint("UseCompatLoadingForDrawables")
 @Composable
 fun DrawMarkers(mapView: MapView, posts: List<Post>) {
+    val context = LocalContext.current
+    val mushroomDrawable = ContextCompat.getDrawable(context, mushroom)
+    if (mushroomDrawable == null) {
+        Log.e("DrawMarkers", "Error loading marker icon")
+        return
+    }
+
     posts.forEach { post ->
         try {
             val cordenadas = post.cordenadas.split(",")
             val latitud = cordenadas[0].trim().toDouble()
             val longitud = cordenadas[1].trim().toDouble()
 
-            Log.d("MapScreen", "Latitud: $latitud, Longitud: $longitud")
+            Log.d("DrawMarkers", "Marker coordinates: latitud = $latitud, longitud = $longitud")
 
-            val geoPoint = GeoPoint(latitud, longitud)
             val marker = Marker(mapView).apply {
-                position = geoPoint
+                position = GeoPoint(latitud, longitud)
                 title = post.titulo
                 subDescription = "${post.descripcion}\n\n${post.fecha}"
             }
+
             mapView.overlays.add(marker)
 
-            Log.d("MapScreen", "Marker added: ${marker.position.latitude}, ${marker.position.longitude}, ${marker.title}")
+            Log.d("DrawMarkers", "Marker added: ${marker.position.latitude}, ${marker.position.longitude}, ${marker.title}")
         } catch (e: Exception) {
-            // Log the exception
-            Log.e("MapScreen", "Error creating marker for post: ${post.id}", e)
+            Log.e("DrawMarkers", "Error creating marker for post: ${post.id}", e)
         }
     }
 }

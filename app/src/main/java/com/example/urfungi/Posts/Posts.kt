@@ -1,7 +1,6 @@
-package com.example.urfungi
+package com.example.urfungi.Posts
 
 import android.content.ContentValues
-import android.text.TextUtils.split
 import android.util.Log
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.clickable
@@ -57,6 +56,9 @@ import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
 import coil.compose.AsyncImage
 import coil.compose.rememberImagePainter
+import com.example.urfungi.Repo.Setas
+import com.example.urfungi.addComment
+import com.example.urfungi.deleteComment
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.auth.FirebaseUser
 import com.google.firebase.firestore.FirebaseFirestore
@@ -233,7 +235,7 @@ fun UserPostsContent(
                 onPostDeleted = onPostDeleted,
                 onPostUpdated = onPostUpdated,
                 currentUser = FirebaseAuth.getInstance().currentUser,
-                navigateToMap = { lat, lon -> navigateToMap(navController, lat, lon) }
+                navController = navController
             )
         }
     }
@@ -246,8 +248,7 @@ fun UserPostItem(
     onPostDeleted: () -> Unit,
     onPostUpdated: () -> Unit,
     currentUser: FirebaseUser?,
-    navigateToMap: (Double, Double) -> Unit
-
+    navController: NavController
 ) {
     var showDialog by remember { mutableStateOf(false) }
     var showDeleteConfirmationDialog by remember { mutableStateOf(false) }
@@ -431,7 +432,7 @@ fun UserPostItem(
                                                 post.id,
                                                 comment
                                             )
-                                            commentCount-- // Decrementar el contador de comentarios
+                                            commentCount--
                                         }) {
                                             Icon(
                                                 imageVector = Icons.Default.Delete,
@@ -517,14 +518,18 @@ fun UserPostItem(
                 },
                 confirmButton = {
                     Row {
-                        val coordinates = post.cordenadas.split(", ")
-                        val latitud = coordinates[0].toDouble()
-                        val longitud = coordinates[1].toDouble()
-
-                        IconButton(onClick = { navigateToMap(latitud, longitud) }) {
+                        IconButton(
+                            onClick = {
+                                val cordenadas = post.cordenadas.split(",")
+                                val latitud = cordenadas[0].trim().toDouble()
+                                val longitud = cordenadas[1].trim().toDouble()
+                                Log.d("UserPostItem", "Latitud: $latitud, Longitud: $longitud")
+                                navController.navigate("mapScreen/${latitud}/${longitud}")                            },
+                            modifier = Modifier.align(Alignment.CenterVertically)
+                        ) {
                             Icon(
                                 imageVector = Icons.Default.Map,
-                                contentDescription = "Mapa",
+                                contentDescription = "Map Button",
                                 tint = Color.Gray
                             )
                         }
@@ -564,7 +569,6 @@ fun UserPostItem(
                                 .delete()
                                 .addOnSuccessListener {
                                     Log.d("Post", "DocumentSnapshot successfully deleted!")
-                                    // Recargar los posts
                                     onPostDeleted()
                                 }
                                 .addOnFailureListener { e ->

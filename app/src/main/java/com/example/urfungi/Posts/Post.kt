@@ -1,4 +1,4 @@
-package com.example.urfungi
+package com.example.urfungi.Posts
 
 data class Post(
     var id: String = "",

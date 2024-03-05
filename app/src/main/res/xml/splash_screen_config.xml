@@ -1,0 +1,5 @@
+<androidx.window.SplashScreen xmlns:android="http://schemas.android.com/apk/res/android">
+    <windowSplashscreen>
+        <icon android:resource="@drawable/mushroom" />
+    </windowSplashscreen>
+</androidx.window.SplashScreen>
