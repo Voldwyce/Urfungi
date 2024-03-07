@@ -2,6 +2,7 @@ package com.example.urfungi.QuizJuego
 
 import android.os.CountDownTimer
 import android.util.Log
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -15,7 +16,9 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.List
 import androidx.compose.material.icons.filled.Person
@@ -55,6 +58,7 @@ import java.util.Date
 import java.util.Locale
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.ui.draw.shadow
 
 enum class DifficultyLevel {
     EASY, INTERMEDIATE, HARD
@@ -756,87 +760,110 @@ fun HighscoresScreen() {
     }
 
     Column(
-        modifier = Modifier.fillMaxSize(),
-        verticalArrangement = Arrangement.Center,
-        horizontalAlignment = Alignment.CenterHorizontally
+        modifier = Modifier.fillMaxSize()
     ) {
-        Row(
-            horizontalArrangement = Arrangement.spacedBy(8.dp),
-            modifier = Modifier.padding(bottom = 16.dp)
-        ) {
-            // Botón para Mejores 10 Globalmente
-            Button(
-                onClick = { filterType = HighscoreFilter.GLOBAL_TOP_10 },
-                colors = ButtonDefaults.buttonColors(
-                    contentColor = if (filterType == HighscoreFilter.GLOBAL_TOP_10) Color.White else Color.Black
-                )
-            ) {
-                Text("Mejores 10 Globalmente")
-            }
-
-            // Botón para Mejores del Día
-            Button(
-                onClick = { filterType = HighscoreFilter.TODAY_TOP },
-                colors = ButtonDefaults.buttonColors(
-                    contentColor = if (filterType == HighscoreFilter.TODAY_TOP) Color.White else Color.Black
-                )
-            ) {
-                Text("Mejores del Día")
-            }
+        FilterButtons(filterType) { selectedFilter ->
+            filterType = selectedFilter
         }
 
-        // Mostrar registros de highscore
-        recordsList.forEachIndexed { index, record ->
-            HighscoreItem(
-                position = index + 1,
-                name = record.first,
-                score = record.second
+        Spacer(modifier = Modifier.height(16.dp))
+
+        Column(
+            modifier = Modifier.verticalScroll(rememberScrollState())
+        ) {
+            recordsList.forEachIndexed { index, record ->
+                HighscoreItem(
+                    position = index + 1,
+                    name = record.first,
+                    score = record.second
+                )
+                Spacer(modifier = Modifier.height(8.dp))
+            }
+        }
+    }
+}
+
+@Composable
+fun FilterButtons(
+    currentFilter: HighscoreFilter,
+    onFilterSelected: (HighscoreFilter) -> Unit
+) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(50.dp),
+        horizontalArrangement = Arrangement.spacedBy(8.dp)
+    ) {
+        Button(
+            onClick = { onFilterSelected(HighscoreFilter.GLOBAL_TOP_10) },
+            colors = ButtonDefaults.buttonColors(
+                contentColor = if (currentFilter == HighscoreFilter.GLOBAL_TOP_10) Color.White else Color.Black
             )
-            Spacer(modifier = Modifier.height(8.dp))
+        ) {
+            Text("Mejores 10 Globalmente")
+        }
+
+        Button(
+            onClick = { onFilterSelected(HighscoreFilter.TODAY_TOP) },
+            colors = ButtonDefaults.buttonColors(
+                contentColor = if (currentFilter == HighscoreFilter.TODAY_TOP) Color.White else Color.Black
+            )
+        ) {
+            Text("Mejores del Día")
         }
     }
 }
 
 @Composable
 fun HighscoreItem(position: Int, name: String, score: Int) {
-    Card(
+    Box(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(horizontal = 16.dp)
+            .padding(horizontal = 16.dp, vertical = 8.dp)
+            .shadow(
+                elevation = if (position <= 3) 8.dp else 0.dp,
+                shape = RoundedCornerShape(8.dp),
+                clip = true
+            )
+            .background(
+                when (position) {
+                    1 -> Color(0xFFFFF59D) // Primer lugar (amarillo suave)
+                    2 -> Color(0xFFCCCCCC) // Segundo lugar (gris claro)
+                    3 -> Color(0xFFDAA520) // Tercer lugar (bronce)
+                    else -> Color.White // Otros lugares
+                },
+                shape = RoundedCornerShape(8.dp)
+            )
     ) {
         Row(
-            modifier = Modifier.padding(16.dp),
+            modifier = Modifier
+                .padding(16.dp)
+                .fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
         ) {
-            Card(
-                modifier = Modifier.size(50.dp),
-                shape = RoundedCornerShape(8.dp),
-            ) {
-                Box(
-                    contentAlignment = Alignment.Center
-                ) {
-                    Text(
-                        text = position.toString(),
-                        fontSize = 18.sp,
-                        fontWeight = FontWeight.Bold
-                    )
-                }
-            }
-
-            Spacer(modifier = Modifier.width(16.dp))
-
-            Column {
-                Text(
-                    text = "Nombre: $name",
-                    fontSize = 16.sp,
-                    modifier = Modifier.padding(bottom = 4.dp)
-                )
-                Text(
-                    text = "Puntos: $score",
-                    fontSize = 16.sp,
-                    modifier = Modifier.padding(bottom = 4.dp)
-                )
-            }
+            Text(
+                text = "$position",
+                fontSize = 18.sp,
+                fontWeight = FontWeight.Bold,
+                color = Color.Black, // Cambiar el color del texto para los primeros tres puestos
+                modifier = Modifier.padding(end = 8.dp)
+            )
+            Text(
+                text = "$name",
+                fontSize = 16.sp,
+                color = Color.Black, // Cambiar el color del texto para los primeros tres puestos
+            )
+            Text(
+                text = "Puntos: $score",
+                fontSize = 16.sp,
+                color = Color.Black, // Cambiar el color del texto para los primeros tres puestos
+                modifier = Modifier.padding(start = 8.dp)
+            )
         }
     }
 }
+
+
+
+
