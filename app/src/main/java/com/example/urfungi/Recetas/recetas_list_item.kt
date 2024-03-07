@@ -163,7 +163,7 @@ fun RecetasSetasListItem(receta: Recetas) {
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Column {
-                    Spacer(modifier = Modifier.height(25.dp))
+                    Spacer(modifier = Modifier.height(50.dp))
                     Text(
                         text = receta.NombreReceta,
                         fontWeight = FontWeight.Bold,

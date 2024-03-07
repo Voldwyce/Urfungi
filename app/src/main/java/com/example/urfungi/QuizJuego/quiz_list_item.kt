@@ -43,7 +43,6 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import coil.compose.AsyncImage
-import com.google.firebase.Timestamp
 import com.example.urfungi.Repo.Setas
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FirebaseFirestore
@@ -54,11 +53,8 @@ import java.text.SimpleDateFormat
 import java.util.Calendar
 import java.util.Date
 import java.util.Locale
-import kotlin.random.Random
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.OutlinedTextField
-import com.example.urfungi.Repo.Setas
-import java.util.TimeZone
 
 enum class DifficultyLevel {
     EASY, INTERMEDIATE, HARD
@@ -412,6 +408,7 @@ fun QuizPostScreen() {
         }
     }
 }
+
 suspend fun getQuizPostsFromDatabase(): List<QuizPost> {
     val firestore = FirebaseFirestore.getInstance()
     val quizPosts = mutableListOf<QuizPost>()
@@ -501,6 +498,7 @@ suspend fun getUserName2(idusuario: String): String {
     }
     return userName
 }
+
 @Composable
 fun ChooseDifficultyDialog(onDifficultySelected: (DifficultyLevel) -> Unit) {
     val dialogDismissed = remember { mutableStateOf(false) }
@@ -787,9 +785,58 @@ fun HighscoresScreen() {
             }
         }
 
-        RecordsList(recordsList)
+        // Mostrar registros de highscore
+        recordsList.forEachIndexed { index, record ->
+            HighscoreItem(
+                position = index + 1,
+                name = record.first,
+                score = record.second
+            )
+            Spacer(modifier = Modifier.height(8.dp))
+        }
     }
 }
 
+@Composable
+fun HighscoreItem(position: Int, name: String, score: Int) {
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 16.dp)
+    ) {
+        Row(
+            modifier = Modifier.padding(16.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Card(
+                modifier = Modifier.size(50.dp),
+                shape = RoundedCornerShape(8.dp),
+            ) {
+                Box(
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text(
+                        text = position.toString(),
+                        fontSize = 18.sp,
+                        fontWeight = FontWeight.Bold
+                    )
+                }
+            }
 
+            Spacer(modifier = Modifier.width(16.dp))
 
+            Column {
+                Text(
+                    text = "Nombre: $name",
+                    fontSize = 16.sp,
+                    modifier = Modifier.padding(bottom = 4.dp)
+                )
+                Text(
+                    text = "Puntos: $score",
+                    fontSize = 16.sp,
+                    modifier = Modifier.padding(bottom = 4.dp)
+                )
+            }
+        }
+    }
+}

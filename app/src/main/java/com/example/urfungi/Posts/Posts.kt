@@ -5,6 +5,7 @@ import android.util.Log
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -66,19 +67,18 @@ import kotlinx.coroutines.tasks.await
 
 @Composable
 fun UserPostsScreen(navController: NavController) {
-    // Declaración de variables de estado para los posts y los tipos de setas
     var posts by remember { mutableStateOf(emptyList<Post>()) }
     var setaTypes by remember { mutableStateOf(emptyList<Setas>()) }
 
-    // Declaración de variables de estado para el filtro y orden
     var selectedToxicity by remember { mutableStateOf("") }
     var selectedOrder by remember { mutableStateOf("Fecha") }
 
-    // Obtener instancia de Firestore y el ID del usuario actual
+    var showDialogToxicity by remember { mutableStateOf(false) }
+    var showDialogOrder by remember { mutableStateOf(false) }
+
     val db = FirebaseFirestore.getInstance()
     val userId = FirebaseAuth.getInstance().currentUser?.uid
 
-    // Función para cargar los posts del usuario actual
     fun loadPosts() {
         db.collection("posts")
             .whereEqualTo("usuario", userId)
@@ -139,7 +139,6 @@ fun UserPostsScreen(navController: NavController) {
         }
     }
 
-    // Cargar los posts y los tipos de setas cuando se inicializa el componente
     LaunchedEffect(Unit) {
         loadPosts()
         setaTypes = fetchMushroomData()
@@ -150,45 +149,24 @@ fun UserPostsScreen(navController: NavController) {
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .padding(16.dp)
+            .padding(10.dp)
     ) {
-        // Filtro por toxicidad
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(end = 8.dp),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Text("Toxicidad:")
-            val toxicities = listOf("Segura", "Leve", "Peligrosa", "Muy peligrosa", "Mortal")
-            toxicities.forEach { toxicity ->
-                RadioButton(
-                    selected = selectedToxicity == toxicity,
-                    onClick = { selectedToxicity = toxicity },
-                )
+        // Botones para mostrar los diálogos de selección de toxicidad y orden
+        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+            Box(modifier = Modifier.weight(1f).padding(horizontal = 16.dp)) {
+                Button(onClick = { showDialogToxicity = true }) {
+                    Text("Filtrar por Toxicidad")
+                }
+            }
+            Spacer(modifier = Modifier.width(16.dp))
+            Box(modifier = Modifier.weight(1f).padding(horizontal = 34.dp)) {
+                Button(onClick = { showDialogOrder = true }) {
+                    Text("Ordenar por")
+                }
             }
         }
 
         Spacer(modifier = Modifier.height(16.dp))
-
-        // Filtro por orden
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(end = 8.dp),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Text("Orden:")
-            val orders = listOf("Fecha", "Likes", "Comentarios")
-            orders.forEach { order ->
-                RadioButton(
-                    selected = selectedOrder == order,
-                    onClick = { selectedOrder = order },
-                )
-            }
-        }
 
         // Título de los posts
         Text(
@@ -209,7 +187,27 @@ fun UserPostsScreen(navController: NavController) {
             selectedOrder = selectedOrder
         )
     }
+
+    // Mostrar diálogo de selección de toxicidad
+    if (showDialogToxicity) {
+        ShowToxicityDialog(
+            selectedToxicity = selectedToxicity,
+            onToxicitySelected = { selectedToxicity = it },
+            onDismiss = { showDialogToxicity = false }
+        )
+    }
+
+    // Mostrar diálogo de selección de orden
+    if (showDialogOrder) {
+        ShowOrderDialog(
+            selectedOrder = selectedOrder,
+            onOrderSelected = { selectedOrder = it },
+            onDismiss = { showDialogOrder = false }
+        )
+    }
 }
+
+
 @Composable
 fun UserPostsContent(
     posts: List<Post>,
@@ -524,7 +522,8 @@ fun UserPostItem(
                                 val latitud = cordenadas[0].trim().toDouble()
                                 val longitud = cordenadas[1].trim().toDouble()
                                 Log.d("UserPostItem", "Latitud: $latitud, Longitud: $longitud")
-                                navController.navigate("mapScreen/${latitud}/${longitud}")                            },
+                                navController.navigate("mapScreen/${latitud}/${longitud}")
+                            },
                             modifier = Modifier.align(Alignment.CenterVertically)
                         ) {
                             Icon(
@@ -758,4 +757,56 @@ fun filterAndSortPosts(
 
 fun navigateToMap(navController: NavController, lat: Double, lon: Double) {
     navController.navigate("mapScreen/$lat/$lon")
+}
+
+// Diálogo de selección de toxicidad
+@Composable
+fun ShowToxicityDialog(
+    selectedToxicity: String,
+    onToxicitySelected: (String) -> Unit,
+    onDismiss: () -> Unit
+) {
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text("Selecciona la Toxicidad") },
+        text = {
+            Column {
+                listOf(
+                    "Segura",
+                    "Leve",
+                    "Peligrosa",
+                    "Muy peligrosa",
+                    "Mortal"
+                ).forEach { toxicity ->
+                    TextButton(onClick = { onToxicitySelected(toxicity) }) {
+                        Text(text = toxicity)
+                    }
+                }
+            }
+        },
+        confirmButton = { }
+    )
+}
+
+// Diálogo de selección de orden
+@Composable
+fun ShowOrderDialog(
+    selectedOrder: String,
+    onOrderSelected: (String) -> Unit,
+    onDismiss: () -> Unit
+) {
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text("Selecciona el Orden") },
+        text = {
+            Column {
+                listOf("Fecha", "Likes", "Comentarios").forEach { order ->
+                    TextButton(onClick = { onOrderSelected(order) }) {
+                        Text(text = order)
+                    }
+                }
+            }
+        },
+        confirmButton = { }
+    )
 }
