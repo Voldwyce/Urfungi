@@ -5,5 +5,6 @@ data class Chat(
     val integrantes: List<String>? = null,
     val grupo: Boolean? = false,
     val nombreGrupo: String? = "",
-    val usuariosEnChat: String? = ""
+    val usuariosEnChat: String? = "",
+    val admin: String? = ""
 )

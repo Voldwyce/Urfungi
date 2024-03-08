@@ -6,12 +6,14 @@ import android.content.ContentValues.TAG
 import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
+import android.net.Uri
 import android.os.Bundle
 import android.preference.PreferenceManager
 import android.util.Log
 import android.widget.ImageView
 import android.widget.Toast
 import androidx.activity.ComponentActivity
+import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.compose.setContent
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.AnimatedContentTransitionScope
@@ -30,6 +32,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.wrapContentHeight
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
@@ -50,6 +53,7 @@ import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.TextField
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
@@ -59,9 +63,12 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
+import androidx.compose.ui.Alignment.Companion.CenterHorizontally
+import androidx.compose.ui.Alignment.Companion.CenterVertically
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.painter.Painter
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.TextFieldValue
@@ -98,6 +105,7 @@ import com.example.urfungi.Repo.WeatherApp
 import com.example.urfungi.Restaurantes.RestaurantesSetasListScreen
 import com.example.urfungi.Usuarios.Chat
 import com.example.urfungi.Usuarios.ChatGrupo
+import com.example.urfungi.Usuarios.EditarGrupoScreen
 import com.example.urfungi.Usuarios.LoginAppActivity
 import com.example.urfungi.Usuarios.MensajesChat
 import com.example.urfungi.Usuarios.usuarios
@@ -108,7 +116,9 @@ import com.google.firebase.database.DatabaseReference
 import com.google.firebase.database.database
 import com.google.firebase.firestore.FieldPath
 import com.google.firebase.firestore.FieldValue
+import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.firestore
+import com.google.firebase.storage.FirebaseStorage
 import org.osmdroid.config.Configuration
 import org.osmdroid.library.BuildConfig
 import java.io.IOException
@@ -240,7 +250,24 @@ class MainActivity : ComponentActivity() {
                                 }
 
                                 composable(
-                                    route = "grupoChat/{grupoId}",
+                                    route = "grupoChat/{grupoId}/{Admin}/{nombreGrupo}",
+                                    enterTransition = {
+                                        slideIntoContainer(AnimatedContentTransitionScope.SlideDirection.Right)
+                                    },
+                                    exitTransition = {
+                                        slideOutOfContainer(AnimatedContentTransitionScope.SlideDirection.Left)
+                                    }
+                                ) { backStackEntry ->
+                                    val grupoId = backStackEntry.arguments?.getString("grupoId")
+                                    val Admin = backStackEntry.arguments?.getString("Admin")
+                                    val Nombre = backStackEntry.arguments?.getString("nombre")
+
+
+                                    ChatGrupo(grupoId = grupoId,Admin = Admin, nombre = Nombre, navController = navController)
+                                }
+
+                                composable(
+                                    route = "editarGrupo/{grupoId}",
                                     enterTransition = {
                                         slideIntoContainer(AnimatedContentTransitionScope.SlideDirection.Right)
                                     },
@@ -250,7 +277,7 @@ class MainActivity : ComponentActivity() {
                                 ) { backStackEntry ->
                                     val grupoId = backStackEntry.arguments?.getString("grupoId")
 
-                                    ChatGrupo(grupoId = grupoId)
+                                    EditarGrupoScreen(navController, grupoId)
                                 }
 
                                 composable(
@@ -566,6 +593,9 @@ class MainActivity : ComponentActivity() {
         var showCreateGroupButton by remember { mutableStateOf(false) }
         var grupos by remember { mutableStateOf<List<Chat>>(emptyList()) }
         var mostrarGrupos by remember { mutableStateOf(false) }
+        var isFriend by remember { mutableStateOf(false) }
+        var isChat by remember { mutableStateOf(false) }
+        var showProfileDialog by remember { mutableStateOf(false) }
 
         LaunchedEffect(Unit) {
             val currentUser = FirebaseAuth.getInstance().currentUser
@@ -647,10 +677,10 @@ class MainActivity : ComponentActivity() {
                             val db = Firebase.firestore
                             db.collection("Chat")
                                 .whereArrayContains("integrantes", userId)
+                                .whereEqualTo("grupo", true) // Agregar esta condición para comprobar si grupo es true
                                 .get()
                                 .addOnSuccessListener { result ->
                                     grupos = result.toObjects(Chat::class.java)
-
                                     listaActualChat = grupos
                                 }
                                 .addOnFailureListener { e ->
@@ -658,9 +688,6 @@ class MainActivity : ComponentActivity() {
                                     Log.e(TAG, "Error al obtener la lista de grupos en los que el usuario es un integrante: $e")
                                 }
                         }
-
-
-
                         /*
                         * Filtros para la lista de exploración:
                         * 1. Esta lista tiene en cuenta todas las otras listas para mostrar a los usuarios.
@@ -740,7 +767,6 @@ class MainActivity : ComponentActivity() {
                                     listaActual = explorar
                                 }
                                 .addOnFailureListener { e ->
-                                    // Manejar errores aquí
                                     Log.e(
                                         TAG,
                                         "Error al obtener la lista de exploración en Firestore: $e"
@@ -759,7 +785,6 @@ class MainActivity : ComponentActivity() {
                                     listaActual = explorar
                                 }
                                 .addOnFailureListener { e ->
-                                    // Manejar errores aquí
                                     Log.e(
                                         TAG,
                                         "Error al obtener la lista de exploración en Firestore: $e"
@@ -775,7 +800,6 @@ class MainActivity : ComponentActivity() {
                         )
                     }
                 }.addOnFailureListener { e ->
-                    // Manejar errores aquí
                     Log.e(TAG, "Error al obtener datos del usuario en Firestore: $e")
                 }
             }
@@ -810,11 +834,19 @@ class MainActivity : ComponentActivity() {
                             FirebaseAuth.getInstance().signOut()
                             navigateToLoginAppActivity()
                         },
-                        onEditClick = {},
                         onCrearGrupoClick = {
                             navController.navigate("grupoCrear")
-                        }
+                        },
+                        onClick = { showProfileDialog = true }
+
                     )
+                    if (showProfileDialog) {
+                        // Mostrar la pestaña de perfil
+                        ProfileDialog(
+                            usuario = usuario,
+                            onCloseDialog = { showProfileDialog = false } // Cerrar el diálogo al hacer clic fuera de él
+                        )
+                    }
                 } else {
                     Text("El usuario es nulo")
                 }
@@ -834,6 +866,8 @@ class MainActivity : ComponentActivity() {
                     onClick = {
                         listaActual = explorar
                         mostrarGrupos = false
+                        isFriend = false
+                        isChat = false
 
                     },
                     modifier = Modifier
@@ -850,6 +884,8 @@ class MainActivity : ComponentActivity() {
                     onClick = {
                         listaActual = amigos
                         mostrarGrupos = false
+                        isFriend = true
+                        isChat = false
 
                     },
                     modifier = Modifier
@@ -866,6 +902,8 @@ class MainActivity : ComponentActivity() {
                     onClick = {
                         listaActual = solicitudes
                         mostrarGrupos = false
+                        isFriend = false
+                        isChat = false
 
                     },
                     modifier = Modifier
@@ -893,6 +931,9 @@ class MainActivity : ComponentActivity() {
                         clicUsuario = true
                         showCreateGroupButton = false
                         mostrarGrupos = false
+                        isFriend = false
+                        isChat = true
+
                     },
                     modifier = Modifier
                         .weight(1f)
@@ -909,6 +950,9 @@ class MainActivity : ComponentActivity() {
                         showCreateGroupButton = true
                         listaActualChat = grupos
                         mostrarGrupos = true
+                        isFriend = false
+                        isChat = false
+
                     },
                     modifier = Modifier
                         .weight(1f)
@@ -948,6 +992,8 @@ class MainActivity : ComponentActivity() {
                                 AmigoCard(
                                     amigo = amigo,
                                     isExploring = (listaActual === explorar),
+                                    isFriend = isFriend,
+                                    isChat = isChat,
                                     onAddClick = {
                                         // Agregar amigo.id a la lista de solicitudesAmistad del usuario actual
                                         usuario?.let { currentUser ->
@@ -1066,8 +1112,52 @@ class MainActivity : ComponentActivity() {
                                                     )
                                                 }
                                         }
-                                    }
-                                )
+                                    },
+                                    onEliminarClick = { amigoEliminado ->
+                                        // Lógica para eliminar al amigo de la lista de amigos del usuario logeado
+
+                                        val currentUser = FirebaseAuth.getInstance().currentUser
+                                        if (currentUser != null) {
+
+                                        val db = Firebase.firestore
+                                        val userId = currentUser.uid
+
+                                        // Actualizar la lista de amigos en Firestore para el usuario logeado
+                                        val userReference =
+                                            db.collection("usuarios").document(userId ?: "")
+                                        userReference.update(
+                                            "amigos",
+                                            FieldValue.arrayRemove(amigoEliminado.id)
+                                        )
+                                            .addOnSuccessListener {
+                                                // Éxito al eliminar de la lista de amigos
+                                            }
+                                            .addOnFailureListener { e ->
+                                                // Manejar errores aquí
+                                                Log.e(
+                                                    TAG,
+                                                    "Error al eliminar de la lista de amigos: $e"
+                                                )
+                                            }
+
+                                        // Actualizar la lista de amigos en Firestore para el usuario amigo
+                                        val amigoReference = db.collection("usuarios")
+                                            .document(amigoEliminado.id ?: "")
+                                        amigoReference.update(
+                                            "amigos",
+                                            FieldValue.arrayRemove(userId)
+                                        )
+                                            .addOnSuccessListener {
+                                                // Éxito al eliminar de la lista de amigos del usuario amigo
+                                            }
+                                            .addOnFailureListener { e ->
+                                                // Manejar errores aquí
+                                                Log.e(
+                                                    TAG,
+                                                    "Error al eliminar de la lista de amigos del usuario amigo: $e"
+                                                )
+                                            }
+                                    } },                                )
                             }
                         }
                     } else {
@@ -1076,6 +1166,7 @@ class MainActivity : ComponentActivity() {
                             Text(
                                 text = when {
                                     listaActual === amigos -> "Sin Amigos"
+                                    listaActual === amigos && isChat === true -> "Sin Chats"
                                     listaActual === solicitudes -> "Sin Solicitudes"
                                     mostrarGrupos === true && listaActualChat === grupos -> "Sin Grupos"
                                     else -> "Exploración Completada"
@@ -1099,17 +1190,28 @@ class MainActivity : ComponentActivity() {
     fun AmigoCard(
         amigo: usuarios,
         isExploring: Boolean,
+        isFriend: Boolean,
+        isChat: Boolean,
         onAddClick: (String) -> Unit,
         navController: NavController,
         showAdditionalButton: Boolean = false, // Nuevo parámetro para controlar la visibilidad del botón adicional
         onAdditionalButtonClick: (usuarios) -> Unit = {},
-        onRejectClick: (usuarios) -> Unit = {}// Nuevo parámetro para manejar el clic en el botón adicional
-    ) {
+        onRejectClick: (usuarios) -> Unit = {},// Nuevo parámetro para manejar el clic en el botón adicional
+        onEliminarClick: (usuarios) -> Unit = {}
+        ) {
         Card(
             modifier = Modifier
                 .fillMaxWidth()
                 .height(120.dp)
-                .padding(10.dp),
+                .padding(10.dp)
+                .clickable {
+                    if (isChat) {
+                        // Navegar a la pantalla MensajesChat cuando isChat es true
+                        val escapedUriString = URLEncoder.encode(amigo.foto, "UTF-8")
+                        navController.navigate("mensajes/${amigo.id}/${amigo.username}/${escapedUriString}")
+                    }
+                    // Si isChat es false, no hacer nada al hacer clic en la tarjeta
+                },
             shape = RoundedCornerShape(16.dp),
         ) {
             Row(
@@ -1147,7 +1249,8 @@ class MainActivity : ComponentActivity() {
                         .align(Alignment.CenterVertically),
                     verticalArrangement = Arrangement.spacedBy(2.dp)
                 ) {
-                    // Nombre de usuario más pequeño del amigo
+                    // Nombre de usuario
+
                     Text(
                         text = amigo.username ?: "Username",
                         fontSize = 22.sp,
@@ -1155,12 +1258,6 @@ class MainActivity : ComponentActivity() {
                         color = Color.White,
                         modifier = Modifier
                             .padding(top = 8.dp)
-                            .clickable {
-                                // Navegar a la pantalla MensajesChat cuando se hace clic en el nombre de usuario
-                                // Asegúrate de tener acceso al NavController en este punto
-                                val escapedUriString = URLEncoder.encode(amigo.foto, "UTF-8")
-                                navController.navigate("mensajes/${amigo.id}/${amigo.username}/${escapedUriString}")
-                            }// Padding superior al username
                     )
 
                     // Nombre completo del amigo
@@ -1176,81 +1273,98 @@ class MainActivity : ComponentActivity() {
 
                 // Botones a la derecha del todo
                 if (isExploring) {
-                    // Botón de Perfil
-                    IconButton(
-                        onClick = { /* Manejar acción de Perfil */ },
-                        modifier = Modifier
-                            .size(40.dp)
-                            .clip(CircleShape)
-                            .background(Color.Gray)
-                            .padding(top = 8.dp, end = 8.dp)
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.Person,
-                            contentDescription = "Perfil",
-                            modifier = Modifier
-                                .fillMaxSize()
-                                .padding(4.dp)
-                        )
-                    }
-
-                    Spacer(modifier = Modifier.height(16.dp))
 
                     // Botón de Agregar
 
-                    Button(
-                        onClick = { onAddClick(amigo.id) },
-
+                    Box(
                         modifier = Modifier
-                            .size(40.dp)
-                            .clip(CircleShape)
+                            .size(38.dp)
+                            .clip(RoundedCornerShape(8.dp)) // Esquinas redondeadas
                             .background(Color.Green)
-                            .padding(top = 8.dp, end = 8.dp)
+                            .clickable { onAddClick(amigo.id) }, // Acción al hacer clic
+                        contentAlignment = Alignment.Center
                     ) {
                         Icon(
-                            imageVector = Icons.Default.Add,
+                            imageVector = Icons.Default.PersonAdd,
                             contentDescription = "Agregar",
+                            tint = Color.White,
                             modifier = Modifier
                                 .fillMaxSize()
                                 .padding(4.dp)
                         )
                     }
+
+                    Spacer(modifier = Modifier.width(10.dp))
+
+                }
+
+                if (isFriend) {
+
+                    // Botón adicional para eliminarAmigo
+                    Box(
+                        modifier = Modifier
+                            .size(38.dp)
+                            .clip(RoundedCornerShape(8.dp))
+                            .background(Color.Red) //
+                            .clickable{ onEliminarClick(amigo) }
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.PersonRemove,
+                            contentDescription = "Rechazar",
+                            tint = Color.White,
+                            modifier = Modifier
+                                .fillMaxSize()
+                                .padding(4.dp)
+                        )
+                    }
+
+                    Spacer(modifier = Modifier.width(10.dp))
+
                 }
 
                 if (showAdditionalButton) {
-                    IconButton(
-                        onClick = { onAdditionalButtonClick(amigo) },
-                        modifier = Modifier
-                            .size(40.dp)
-                            .clip(CircleShape)
-                            .background(Color.Blue) // Color del botón adicional
-                            .padding(top = 8.dp, end = 8.dp)
+                    //Boton Solicitud Aceptar
+                    Box(
+                            modifier = Modifier
+                            .size(38.dp)
+                            .clip(RoundedCornerShape(8.dp))
+                            .background(Color.Green)
+                            .clickable{ onAdditionalButtonClick(amigo) },
+                        contentAlignment = Alignment.Center
+
                     ) {
                         Icon(
                             imageVector = Icons.Default.Add, // Reemplaza con el icono adecuado
-                            contentDescription = "Botón Adicional",
+                            contentDescription = "Botón Agregar",
+                            tint = Color.White,
                             modifier = Modifier
                                 .fillMaxSize()
                                 .padding(4.dp)
                         )
                     }
+
+                    Spacer(modifier = Modifier.width(10.dp))
+
                     // Botón adicional para rechazar
-                    Button(
-                        onClick = { onRejectClick(amigo) },
+                    Box(
                         modifier = Modifier
-                            .size(40.dp)
-                            .clip(CircleShape)
-                            .background(Color.Red) // Puedes ajustar el color según tus preferencias
-                            .padding(top = 8.dp, end = 8.dp)
+                            .size(38.dp)
+                            .clip(RoundedCornerShape(8.dp))
+                            .background(Color.Red) //
+                            .clickable{ onRejectClick(amigo) }
                     ) {
                         Icon(
-                            imageVector = Icons.Default.Clear, // Puedes reemplazarlo con el icono adecuado
+                            imageVector = Icons.Default.PersonRemove,
                             contentDescription = "Rechazar",
+                            tint = Color.White,
                             modifier = Modifier
                                 .fillMaxSize()
                                 .padding(4.dp)
                         )
                     }
+
+                    Spacer(modifier = Modifier.width(10.dp))
+
                 }
             }
         }
@@ -1286,8 +1400,7 @@ class MainActivity : ComponentActivity() {
 
 
     @Composable
-    fun MensajesCard(usuario: usuarios?, onLogoutClick: () -> Unit, onEditClick: () -> Unit, onCrearGrupoClick: () -> Unit) {
-
+    fun MensajesCard(usuario: usuarios?, onLogoutClick: () -> Unit, onCrearGrupoClick: () -> Unit,onClick: () -> Unit) {
         Box(
             modifier = Modifier.fillMaxSize(),
             contentAlignment = Alignment.TopStart
@@ -1296,14 +1409,14 @@ class MainActivity : ComponentActivity() {
                 Card(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .height(180.dp),
-
+                        .height(200.dp) // Aumentar la altura del Card
+                        .clickable { onClick()},
                     shape = RoundedCornerShape(16.dp),
                 ) {
                     Row(
                         modifier = Modifier
                             .fillMaxSize()
-                            .padding(6.dp),
+                            .padding(12.dp), // Aumentar el padding
 
                         verticalAlignment = Alignment.CenterVertically
                     ) {
@@ -1320,7 +1433,7 @@ class MainActivity : ComponentActivity() {
                                         .into(this)
                                 }
                             }, modifier = Modifier
-                                .size(80.dp)
+                                .size(90.dp) // Aumentar el tamaño de la imagen de perfil
                                 .clip(CircleShape)
                                 .border(2.dp, Color.Green, CircleShape)
                         )
@@ -1334,21 +1447,21 @@ class MainActivity : ComponentActivity() {
                                 .weight(1f)
                                 .fillMaxHeight()
                                 .align(Alignment.CenterVertically),
-                            verticalArrangement = Arrangement.spacedBy(2.dp)
+                            verticalArrangement = Arrangement.spacedBy(4.dp) // Aumentar el espacio entre los textos
                         ) {
-                            // Nombre de usuario más pequeño
+                            // Nombre de usuario más grande
                             Text(
                                 text = usuario.username ?: "Username",
-                                fontSize = 22.sp,
+                                fontSize = 24.sp, // Aumentar el tamaño de la fuente
                                 fontWeight = FontWeight.Bold,
                                 color = Color.White,
-                                modifier = Modifier.padding(top = 8.dp) // Padding superior al username
+                                modifier = Modifier.padding(top = 8.dp)
                             )
 
                             // Nombre completo del usuario
                             Text(
                                 text = usuario.nombre ?: "Nombre del Usuario",
-                                fontSize = 14.sp,
+                                fontSize = 14.sp, // Aumentar el tamaño de la fuente
                                 color = Color.White
                             )
                         }
@@ -1360,65 +1473,56 @@ class MainActivity : ComponentActivity() {
                         Column(
                             modifier = Modifier
                                 .fillMaxHeight()
+                                .padding(end = 8.dp) // Alineación a la derecha
                         ) {
-                            // Botón de Configuración
-                            IconButton(
-                                onClick = { onEditClick() },
+
+                            Spacer(modifier = Modifier.height(10.dp))
+
+                            // Botón de LogOut
+                            Box(
                                 modifier = Modifier
-                                    .size(40.dp)
-                                    .clip(CircleShape)
-                                    .background(Color.Gray)
-                                    .padding(top = 8.dp, end = 8.dp)
-                            ) {
-                                Icon(
-                                    imageVector = Icons.Default.Settings,
-                                    contentDescription = "Configuración",
-                                    modifier = Modifier
-                                        .fillMaxSize()
-                                        .padding(4.dp)
-
-                                )
-                            }
-
-                            Spacer(modifier = Modifier.height(16.dp))
-
-                            // Botón de Logout
-                            IconButton(
-                                onClick = { onLogoutClick() },
-                                modifier = Modifier
-                                    .size(40.dp) // Aumentado el tamaño del botón
-                                    .clip(CircleShape)
+                                    .size(36.dp) // Tamaño del botón
+                                    .clip(RoundedCornerShape(8.dp)) // Esquinas redondeadas
                                     .background(Color.Red)
-                                    .padding(top = 8.dp, end = 8.dp)
-
+                                    .clickable { onLogoutClick() }, // Acción al hacer clic
+                                contentAlignment = Alignment.Center
                             ) {
                                 Icon(
                                     imageVector = Icons.Default.ExitToApp,
                                     contentDescription = "Logout",
+                                    tint = Color.White,
                                     modifier = Modifier
                                         .fillMaxSize()
                                         .padding(4.dp)
-
                                 )
                             }
 
-                            Button(
-                                onClick = { onCrearGrupoClick() },
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .padding(5.dp)
-                            ) {
-                                Text("Crear Grupo")
-                            }
+                            Spacer(modifier = Modifier.height(20.dp))
 
+                            // Botón de crear grupo
+                            Box(
+                                modifier = Modifier
+                                    .size(36.dp) // Mismo tamaño que el botón de logout
+                                    .clip(RoundedCornerShape(8.dp)) // Esquinas redondeadas
+                                    .background(Color.Green)
+                                    .clickable { onCrearGrupoClick() }, // Acción al hacer clic
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.Add,
+                                    contentDescription = "Crear Grupo",
+                                    tint = Color.White,
+                                    modifier = Modifier
+                                        .fillMaxSize()
+                                        .padding(4.dp)
+                                )
+                            }
                         }
                     }
                 }
             }
-
         }
     }
-
 
     private fun navigateToLoginAppActivity() {
         val intent = Intent(this, LoginAppActivity::class.java)
@@ -1807,6 +1911,7 @@ fun CrearGrupoScreen(
                 .padding(8.dp)
         )
 
+        var isAmigoSeleccionado = false
 
         // Lista de amigos disponibles
         Text("Selecciona amigos para el grupo:")
@@ -1818,8 +1923,10 @@ fun CrearGrupoScreen(
                     amigo = amigo,
                     onAddClick = {
                         amigosSeleccionados = amigosSeleccionados + it
+                        isAmigoSeleccionado = true
                     },
-                    navController = navController
+                    navController = navController,
+                    isAmigoSeleccionado
                 )
             }
         }
@@ -1830,13 +1937,17 @@ fun CrearGrupoScreen(
         LazyColumn(
             modifier = Modifier.weight(1f)
         ) {
-            items(amigosSeleccionados) { amigo ->
-                AmigoCardCrearGrupo(
+            items(amigosSeleccionados.distinctBy { it.id }) { amigo ->
+                AmigoCardCrearGrupoSelect(
                     amigo = amigo,
                     onAddClick = {
-                        // Puedes agregar lógica adicional si es necesario
+                        amigosSeleccionados = amigosSeleccionados.filter { selectedAmigo ->
+                            selectedAmigo != amigo
+                        }
                     },
-                    navController = navController               )
+                    navController = navController,
+                    isAmigoSeleccionado
+                )
             }
         }
 
@@ -1844,42 +1955,29 @@ fun CrearGrupoScreen(
             Button(
                 onClick = {
                     // Verificar que haya al menos 1 amigos seleccionados para crear un grupo
-                    if (amigosSeleccionados.size >= 1) {
+                    if (amigosSeleccionados.size >= 1 && nombreGrupo.text.isNotEmpty()) {
                         // Obtener IDs de amigos seleccionados
                         val idsAmigosSeleccionados = amigosSeleccionados.map { it.id ?: "" }
                         val idUsuarioLogeado = usuario?.id
-
+                        val iddelGrupo = "Grupo_${UUID.randomUUID()}"
 
 
                         // Crear un objeto Chat con la información del grupo
                         val nuevoGrupo = Chat(
-                            id = "grupo_${UUID.randomUUID()}",  // Firestore generará un ID automáticamente
+                            id = iddelGrupo,  // Firestore generará un ID automáticamente
                             integrantes = (listOf(idUsuarioLogeado) + idsAmigosSeleccionados).map { it!! },
                             grupo = true,
                             nombreGrupo = nombreGrupo.text,
-                            usuariosEnChat = null  // Puedes ajustar según tus necesidades
+                            usuariosEnChat = null,
+                            admin = idUsuarioLogeado
                         )
 
                     // Agregar el grupo a Firestore
                     val db = Firebase.firestore
-                    db.collection("Chat")
-                        .add(nuevoGrupo)
+                    db.collection("Chat").document(iddelGrupo)
+                        .set(nuevoGrupo)
                         .addOnSuccessListener { documentReference ->
                             // Grupo creado exitosamente
-                            val nuevoGrupoId = documentReference.id
-
-                            // Actualizar la lista de chats de cada integrante
-                            idsAmigosSeleccionados.forEach { amigoId ->
-                                db.collection("usuarios")
-                                    .document(amigoId)
-                                    .update("Chat", FieldValue.arrayUnion(nuevoGrupoId))
-                                    .addOnSuccessListener {
-                                        Log.d("CrearGrupoScreen", "Grupo creado exitosamente")
-                                    }
-                                    .addOnFailureListener { e ->
-                                        Log.e("CrearGrupoScreen", "Error al crear el grupo", e)
-                                    }
-                            }
 
                             navController.navigate("mensajes")
                         }
@@ -1902,7 +2000,8 @@ fun CrearGrupoScreen(
 fun AmigoCardCrearGrupo(
     amigo: usuarios,
     onAddClick: (usuarios) -> Unit,
-    navController: NavController
+    navController: NavController,
+    isAmigoSeleccionado: Boolean
 ) {
     Card(
         modifier = Modifier
@@ -1954,10 +2053,6 @@ fun AmigoCardCrearGrupo(
                     color = Color.White,
                     modifier = Modifier
                         .padding(top = 8.dp)
-                        .clickable {
-                            val escapedUriString = URLEncoder.encode(amigo.foto, "UTF-8")
-                            navController.navigate("mensajes/${amigo.id}/${amigo.username}/${escapedUriString}")
-                        }
                 )
 
                 // Nombre completo del amigo
@@ -1971,26 +2066,126 @@ fun AmigoCardCrearGrupo(
             // Espaciador horizontal
             Spacer(modifier = Modifier.width(16.dp))
 
-            // Botón de Agregar
-            Button(
-                onClick = { onAddClick(amigo) },
+            // Botón de Agregar o Quitar
+            Box(
                 modifier = Modifier
                     .size(40.dp)
-                    .clip(CircleShape)
+                    .clip(RoundedCornerShape(8.dp)) // Esquinas redondeadas
                     .background(Color.Green)
-                    .padding(top = 8.dp, end = 8.dp)
+                    .clickable { onAddClick(amigo) }, // Acción al hacer clic
+                contentAlignment = Alignment.Center,
             ) {
                 Icon(
                     imageVector = Icons.Default.Add,
                     contentDescription = "Agregar",
+                    tint = Color.White,
                     modifier = Modifier
                         .fillMaxSize()
                         .padding(4.dp)
                 )
             }
+
+            Spacer(modifier = Modifier.width(8.dp))
+
         }
     }
 }
+
+@Composable
+fun AmigoCardCrearGrupoSelect(
+    amigo: usuarios,
+    onAddClick: (usuarios) -> Unit,
+    navController: NavController,
+    isAmigoSeleccionado: Boolean
+) {
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(120.dp)
+            .padding(10.dp),
+        shape = RoundedCornerShape(16.dp),
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(6.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            // Imagen de perfil del amigo a la izquierda
+            AndroidView(
+                factory = { context ->
+                    ImageView(context).apply {
+                        val amigoFoto = amigo.foto
+                        val imageUrl = "$amigoFoto"
+                        Glide.with(context)
+                            .load(imageUrl)
+                            .fitCenter()
+                            .transform(CircleCrop())
+                            .into(this)
+                    }
+                }, modifier = Modifier
+                    .size(80.dp)
+                    .clip(CircleShape)
+                    .border(2.dp, Color.Green, CircleShape)
+            )
+
+            // Espaciador horizontal
+            Spacer(modifier = Modifier.width(12.dp))
+
+            // Columna para el Usuario y Nombre del amigo
+            Column(
+                modifier = Modifier
+                    .weight(1f)
+                    .fillMaxHeight()
+                    .align(Alignment.CenterVertically),
+                verticalArrangement = Arrangement.spacedBy(2.dp)
+            ) {
+                // Nombre de usuario más pequeño del amigo
+                Text(
+                    text = amigo.username ?: "Username",
+                    fontSize = 22.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = Color.White,
+                    modifier = Modifier
+                        .padding(top = 8.dp)
+                )
+
+                // Nombre completo del amigo
+                Text(
+                    text = amigo.nombre ?: "Nombre del Amigo",
+                    fontSize = 14.sp,
+                    color = Color.White
+                )
+            }
+
+            // Espaciador horizontal
+            Spacer(modifier = Modifier.width(16.dp))
+
+            // Botón de Agregar o Quitar
+            Box(
+                modifier = Modifier
+                    .size(40.dp)
+                    .clip(RoundedCornerShape(8.dp)) // Esquinas redondeadas
+                    .background(Color.Red)
+                    .clickable { onAddClick(amigo) }, // Acción al hacer clic
+                contentAlignment = Alignment.Center,
+            ) {
+                Icon(
+                    imageVector = Icons.Default.Remove,
+                    contentDescription = "Quitar",
+                    tint = Color.White,
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(4.dp)
+                )
+            }
+
+            Spacer(modifier = Modifier.width(8.dp))
+
+        }
+    }
+}
+
 
 @Composable
 fun GrupoCard(
@@ -2004,7 +2199,7 @@ fun GrupoCard(
             .padding(10.dp)
             .clickable {
                 // Navegar a la pantalla de detalles del grupo cuando se hace clic en el nombre
-                navController.navigate("grupoChat/${grupo.id}")
+                navController.navigate("grupoChat/${grupo.id}/${grupo.admin}/${grupo.nombreGrupo}")
             },
         shape = RoundedCornerShape(16.dp),
     ) {
@@ -2035,4 +2230,113 @@ fun GrupoCard(
             )
         }
     }
+}
+
+@Composable
+fun ProfileDialog(
+    usuario: usuarios?,
+    onCloseDialog: () -> Unit // Agrega un callback para cerrar el diálogo
+) {
+
+    var loadingState by remember { mutableStateOf(false) }
+    var errorMessage by remember { mutableStateOf<String?>(null) }
+
+    val selectedImageUriState = remember { mutableStateOf<Uri?>(null) }
+    val galleryLauncher = rememberLauncherForActivityResult(contract = ActivityResultContracts.GetContent()) { uri: Uri? ->
+        uri?.let { selectedImageUri ->
+            // Subir la imagen a Firebase Storage
+            val storageRef = FirebaseStorage.getInstance().reference
+            val imageRef = storageRef.child("images/${UUID.randomUUID()}.jpg")
+
+            loadingState = true // Establecer el estado de carga a true
+
+            val uploadTask = imageRef.putFile(uri)
+
+            uploadTask.continueWithTask { task ->
+                if (!task.isSuccessful) {
+                    task.exception?.let {
+                        throw it
+                    }
+                }
+                imageRef.downloadUrl
+            }.addOnCompleteListener { task ->
+                loadingState = false
+
+                if (task.isSuccessful) {
+                    val downloadUri = task.result
+
+                    // Actualizar la URL de la imagen en Firestore
+                    updateImageUrlInFirestore(downloadUri.toString())
+
+                    // Actualizar el estado de la imagen seleccionada
+                    selectedImageUriState.value = uri
+                } else {
+                    errorMessage = "Error al cargar la imagen"
+                }
+            }
+        }
+    }
+
+    AlertDialog(
+        onDismissRequest = { onCloseDialog() },
+        title = {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(16.dp),
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.Center
+            ) {
+                AndroidView(
+                    factory = { context ->
+                        ImageView(context).apply {
+                            val userFoto = usuario?.foto
+                            val imageUrl = selectedImageUriState.value?.toString() ?: userFoto ?: ""
+                            Glide.with(context)
+                                .load(imageUrl)
+                                .fitCenter()
+                                .transform(CircleCrop())
+                                .into(this)
+
+                            setOnClickListener {
+                                galleryLauncher.launch("image/*")
+                            }
+                        }
+                    }, modifier = Modifier
+                        .size(90.dp)
+                        .clip(CircleShape)
+                        .border(2.dp, Color.Green, CircleShape)
+                )
+                Spacer(modifier = Modifier.height(8.dp))
+                Text(text = usuario?.username ?: "hola", fontWeight = FontWeight.Bold)
+                errorMessage?.let { error ->
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Text(text = error, color = Color.Red, fontWeight = FontWeight.Bold)
+                }
+            }
+        },
+        confirmButton = {
+            Button(onClick = { onCloseDialog() }) {
+                Text("Cerrar")
+            }
+        },
+        modifier = Modifier
+            .fillMaxWidth()
+            .wrapContentHeight(align = Alignment.CenterVertically),
+    )
+}
+
+private fun updateImageUrlInFirestore(imageUrl: String) {
+    // Actualizar la URL de la imagen en Firestore
+    val currentUser = FirebaseAuth.getInstance().currentUser
+    val userId = currentUser?.uid
+    val db = FirebaseFirestore.getInstance()
+    val userRef = db.collection("usuarios").document(userId ?: "")
+
+    userRef.update("foto", imageUrl)
+        .addOnSuccessListener {
+        }
+        .addOnFailureListener { e ->
+
+        }
 }
