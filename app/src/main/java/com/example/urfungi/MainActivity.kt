@@ -111,9 +111,6 @@ import com.example.urfungi.Usuarios.usuarios
 import com.example.urfungi.Usuarios.Chat
 import com.example.urfungi.Usuarios.ChatGrupo
 import com.example.urfungi.Usuarios.EditarGrupoScreen
-import com.example.urfungi.Usuarios.LoginAppActivity
-import com.example.urfungi.Usuarios.MensajesChat
-import com.example.urfungi.Usuarios.usuarios
 import com.example.urfungi.ui.theme.AppTheme
 import com.google.firebase.Firebase
 import com.google.firebase.auth.FirebaseAuth
@@ -121,7 +118,9 @@ import com.google.firebase.database.DatabaseReference
 import com.google.firebase.database.database
 import com.google.firebase.firestore.FieldPath
 import com.google.firebase.firestore.FieldValue
+import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.firestore
+import com.google.firebase.storage.FirebaseStorage
 import org.osmdroid.config.Configuration
 import org.osmdroid.library.BuildConfig
 import java.io.IOException
@@ -1957,57 +1956,43 @@ fun CrearGrupoScreen(
                         val idsAmigosSeleccionados = amigosSeleccionados.map { it.id ?: "" }
                         val idUsuarioLogeado = usuario?.id
                         val iddelGrupo = "Grupo_${UUID.randomUUID()}"
-        Button(
-            onClick = {
-                // Verificar que haya al menos 1 amigos seleccionados para crear un grupo
-                if (amigosSeleccionados.size >= 1) {
-                    // Obtener IDs de amigos seleccionados
-                    val idsAmigosSeleccionados = amigosSeleccionados.map { it.id ?: "" }
-                    val idUsuarioLogeado = usuario?.id
 
+                                    // Crear un objeto Chat con la información del grupo
+                                    val nuevoGrupo = Chat(
+                                        id = iddelGrupo,  // Firestore generará un ID automáticamente
+                                        integrantes = (listOf(idUsuarioLogeado) + idsAmigosSeleccionados).map { it!! },
+                                        grupo = true,
+                                        nombreGrupo = nombreGrupo.text,
+                                        usuariosEnChat = null,
+                                        admin = idUsuarioLogeado
+                                    )
 
+                                    // Agregar el grupo a Firestore
+                                    val db = Firebase.firestore
+                                    db.collection("Chat").document(iddelGrupo)
+                                        .set(nuevoGrupo)
+                                        .addOnSuccessListener { documentReference ->
+                                            // Grupo creado exitosamente
 
-                        // Crear un objeto Chat con la información del grupo
-                        val nuevoGrupo = Chat(
-                            id = iddelGrupo,  // Firestore generará un ID automáticamente
-                            integrantes = (listOf(idUsuarioLogeado) + idsAmigosSeleccionados).map { it!! },
-                            grupo = true,
-                            nombreGrupo = nombreGrupo.text,
-                            usuariosEnChat = null,
-                            admin = idUsuarioLogeado
-                        )
-                    // Crear un objeto Chat con la información del grupo
-                    val nuevoGrupo = Chat(
-                        id = "grupo_${UUID.randomUUID()}",  // Firestore generará un ID automáticamente
-                        integrantes = (listOf(idUsuarioLogeado) + idsAmigosSeleccionados).map { it!! },
-                        grupo = true,
-                        nombreGrupo = nombreGrupo.text,
-                        usuariosEnChat = null  // Puedes ajustar según tus necesidades
-                    )
-
-                    // Agregar el grupo a Firestore
-                    val db = Firebase.firestore
-                    db.collection("Chat").document(iddelGrupo)
-                        .set(nuevoGrupo)
-                        .addOnSuccessListener { documentReference ->
-                            // Grupo creado exitosamente
-
-                            navController.navigate("mensajes")
+                                            navController.navigate("mensajes")
+                                        }
+                                        .addOnFailureListener { e ->
+                                        }
+                                } else {
+                                    // Mostrar un mensaje de que se necesitan al menos 2 amigos para crear un grupo
+                                }
+                            },
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(8.dp)
+                        ) {
+                            Text("Crear Grupo")
                         }
-                        .addOnFailureListener { e ->
-                        }
-                } else {
-                    // Mostrar un mensaje de que se necesitan al menos 2 amigos para crear un grupo
+                    }
                 }
-            },
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(8.dp)
-        ) {
-            Text("Crear Grupo")
-        }
-    }
-}
+
+
+
 
 @Composable
 fun AmigoCardCrearGrupo(
