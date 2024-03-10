@@ -168,6 +168,26 @@ fun UserPostsScreen(navController: NavController) {
 
         Spacer(modifier = Modifier.height(16.dp))
 
+        // Botón para borrar filtros
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 16.dp)
+        ) {
+            Button(
+                onClick = {
+                    // Restablecer los valores de los filtros
+                    selectedToxicity = ""
+                    selectedOrder = "Fecha" // Cambia esto según tu criterio por defecto
+                },
+                enabled = selectedToxicity.isNotEmpty() || selectedOrder != "Fecha"
+            ) {
+                Text("Borrar Filtros")
+            }
+        }
+
+        Spacer(modifier = Modifier.height(16.dp))
+
         // Título de los posts
         Text(
             text = "Mis Posts",
@@ -206,6 +226,8 @@ fun UserPostsScreen(navController: NavController) {
         )
     }
 }
+
+
 
 
 @Composable
