@@ -9,6 +9,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
@@ -136,8 +137,9 @@ fun SetasListItem(seta: Setas) {
     Card(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(15.dp, 15.dp, 30.dp)
-            .clickable { showDialog = true } // Mostrar el diálogo al hacer clic
+            .padding(15.dp) // Ajuste el margen del card
+            .width(250.dp) // Aumentar la altura del Card
+            .clickable { showDialog = true }, // Mostrar el diálogo al hacer clic
     ) {
         Column(
             modifier = Modifier
@@ -160,6 +162,7 @@ fun SetasListItem(seta: Setas) {
                     )
             )
 
+            // Contenido restante del Card
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -167,19 +170,19 @@ fun SetasListItem(seta: Setas) {
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Column {
+                    Spacer(modifier = Modifier.height(15.dp))
                     Text(text = seta.Nombre, fontWeight = FontWeight.Bold, color = Color.LightGray)
                 }
             }
         }
     }
-
     if (showDialog) {
         AlertDialog(
             onDismissRequest = { showDialog = false },
             title = { Text(text = seta.Nombre) },
             text = {
                 Column {
-                    // Mostrar la imagen
+                    Spacer(modifier = Modifier.height(32.dp))
                     AsyncImage(
                         model = seta.Imagen,
                         contentDescription = null,
@@ -197,7 +200,7 @@ fun SetasListItem(seta: Setas) {
                             )
                     )
 
-                    Spacer(modifier = Modifier.height(27.dp)) // Agregar espacio entre la imagen y el texto
+                    Spacer(modifier = Modifier.height(50.dp)) // Agregar espacio entre la imagen y el texto
 
                     Text(text = seta.Descripcion)
 

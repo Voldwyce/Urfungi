@@ -158,7 +158,7 @@ fun RestaurantesSetasListItem(restaurantes: Restaurantes, navController: NavCont
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Column {
-                    Spacer(modifier = Modifier.height(25.dp))
+                    Spacer(modifier = Modifier.height(40.dp))
                     Text(
                         text = restaurantes.NombreRestaurante,
                         fontWeight = FontWeight.Bold,
