@@ -102,7 +102,12 @@ import com.example.urfungi.Recetas.RecetasSetasListScreen
 import com.example.urfungi.Repo.Creditos
 import com.example.urfungi.Repo.Repositorio
 import com.example.urfungi.Repo.WeatherApp
+import com.example.urfungi.Repo.Creditos
+import com.example.urfungi.Repo.WeatherApp
 import com.example.urfungi.Restaurantes.RestaurantesSetasListScreen
+import com.example.urfungi.Usuarios.LoginAppActivity
+import com.example.urfungi.Usuarios.MensajesChat
+import com.example.urfungi.Usuarios.usuarios
 import com.example.urfungi.Usuarios.Chat
 import com.example.urfungi.Usuarios.ChatGrupo
 import com.example.urfungi.Usuarios.EditarGrupoScreen
@@ -116,9 +121,7 @@ import com.google.firebase.database.DatabaseReference
 import com.google.firebase.database.database
 import com.google.firebase.firestore.FieldPath
 import com.google.firebase.firestore.FieldValue
-import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.firestore
-import com.google.firebase.storage.FirebaseStorage
 import org.osmdroid.config.Configuration
 import org.osmdroid.library.BuildConfig
 import java.io.IOException
@@ -291,17 +294,11 @@ class MainActivity : ComponentActivity() {
                                 ) { backStackEntry ->
                                     val usuarioId = backStackEntry.arguments?.getString("usuarioId")
                                     val username = backStackEntry.arguments?.getString("username")
-                                    val foto =
-                                        backStackEntry.arguments?.getString("escapedUriString")
+                                    val foto = backStackEntry.arguments?.getString("escapedUriString")
 
 
                                     if (usuarioId != null && username != null && foto != null) {
                                         // Aquí puedes cargar la pantalla MensajesChat con el usuario correspondiente
-                                        MensajesChat(
-                                            usuarioId = usuarioId,
-                                            username = username,
-                                            imagen = foto
-                                        )
                                         MensajesChat(usuarioId = usuarioId, username = username, imagen = foto)
                                     } else {
                                         // Manejar el caso en el que no se proporciona el ID del usuario o el nombre de usuario
@@ -327,7 +324,7 @@ class MainActivity : ComponentActivity() {
                                 }
 
                                 composable(
-                                    route = "mapScreen/{lat}/{lon}",
+                                    "mapScreen/{lat}/{lon}",
                                     arguments = listOf(
                                         navArgument("lat") { type = NavType.FloatType },
                                         navArgument("lon") { type = NavType.FloatType }
@@ -1960,6 +1957,14 @@ fun CrearGrupoScreen(
                         val idsAmigosSeleccionados = amigosSeleccionados.map { it.id ?: "" }
                         val idUsuarioLogeado = usuario?.id
                         val iddelGrupo = "Grupo_${UUID.randomUUID()}"
+        Button(
+            onClick = {
+                // Verificar que haya al menos 1 amigos seleccionados para crear un grupo
+                if (amigosSeleccionados.size >= 1) {
+                    // Obtener IDs de amigos seleccionados
+                    val idsAmigosSeleccionados = amigosSeleccionados.map { it.id ?: "" }
+                    val idUsuarioLogeado = usuario?.id
+
 
 
                         // Crear un objeto Chat con la información del grupo
@@ -1971,6 +1976,14 @@ fun CrearGrupoScreen(
                             usuariosEnChat = null,
                             admin = idUsuarioLogeado
                         )
+                    // Crear un objeto Chat con la información del grupo
+                    val nuevoGrupo = Chat(
+                        id = "grupo_${UUID.randomUUID()}",  // Firestore generará un ID automáticamente
+                        integrantes = (listOf(idUsuarioLogeado) + idsAmigosSeleccionados).map { it!! },
+                        grupo = true,
+                        nombreGrupo = nombreGrupo.text,
+                        usuariosEnChat = null  // Puedes ajustar según tus necesidades
+                    )
 
                     // Agregar el grupo a Firestore
                     val db = Firebase.firestore
